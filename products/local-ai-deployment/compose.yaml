@@ -1,0 +1,74 @@
+name: hezqen-local-ai
+
+services:
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.40.16}
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 4096
+    mem_limit: ${OLLAMA_MEMORY_LIMIT:-16g}
+    cpus: ${OLLAMA_CPUS:-8.0}
+    volumes:
+      - ollama_data:/root/.ollama
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=1g
+    networks:
+      - inference
+    healthcheck:
+      test: ["CMD", "ollama", "ps"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    stop_grace_period: 60s
+
+  open-webui:
+    image: ${OPEN_WEBUI_IMAGE:-ghcr.io/open-webui/open-webui:v0.13.2}
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 1024
+    mem_limit: ${WEBUI_MEMORY_LIMIT:-2g}
+    cpus: ${WEBUI_CPUS:-2.0}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?Set WEBUI_SECRET_KEY in the local .env file}
+      ENABLE_SIGNUP: "false"
+      ENABLE_LOGIN_FORM: "true"
+    ports:
+      - "${WEBUI_BIND_ADDRESS:-127.0.0.1}:${WEBUI_PORT:-3000}:8080"
+    volumes:
+      - open_webui_data:/app/backend/data
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=512m
+    networks:
+      - inference
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    stop_grace_period: 30s
+
+networks:
+  inference:
+    driver: bridge
+
+volumes:
+  ollama_data:
+  open_webui_data:

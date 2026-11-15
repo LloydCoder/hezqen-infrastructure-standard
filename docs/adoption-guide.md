@@ -1,17 +1,17 @@
 # HIES Adoption Guide
 
-## 1. Select a standard version
+## 1. Select the shared contract revision
 
-Choose a tagged HIES release or reviewed commit. Record the exact version and commit in the product repository. Do not follow a moving branch reference.
+In this monorepo, product workspaces consume shared HIES standards, schemas, and tooling from the exact commit being built. Record the HIES revision in the product release metadata. Do not fetch standards from a moving branch during installation or runtime.
 
-## 2. Vendor required assets
+## 2. Maintain product boundaries
 
-Copy the applicable schemas, standards, and templates into the product repository. Preserve the upstream version and source commit in an adoption record. Product builds and installations must not fetch this repository.
+Each `products/<product-id>/` workspace owns its manifest, version, changelog, source/configuration, tests, threat model, compatibility evidence, license inventory, and release documentation. Shared schemas and validation tooling may be used at build time.
 
 ## 3. Complete product-specific obligations
 
 Every product must supply its own:
-- threat model and trust-boundary diagram;
+- threat model and trust-boundary description;
 - product manifest and compatibility matrix;
 - install, upgrade, rollback, backup, restore, and uninstall procedures;
 - license and model-artifact inventory;
@@ -24,8 +24,12 @@ A deviation must identify the requirement, reason, affected product/version, ris
 
 ## 5. Verify
 
-Run the vendored validators, product CI, security checks, and installation tests. Validate offline behavior where claimed. Record unsupported configurations and tests not run.
+Run shared schema and repository checks plus product-specific tests and installation checks. Validate offline behavior where claimed. Record unsupported configurations and tests not run. A passing static configuration check is not a runtime deployment test.
 
-## 6. Update
+## 6. Release independently
 
-Review adopted HIES assets during product releases and when a security advisory or normative standard change affects the product. Updates are reviewed changes, not automatic runtime downloads.
+Use product-scoped semantic versions and tags. Package only the selected product workspace and required self-contained assets. Include the source commit, adopted HIES revision, SBOM, checksums, provenance, compatibility evidence, and release notes. The bundle references immutable product artifacts rather than duplicating source.
+
+## 7. Update
+
+Review shared standards and product workspaces together. Security advisories and normative standard changes trigger impact analysis for all affected products; they do not automatically change already published artifacts.
