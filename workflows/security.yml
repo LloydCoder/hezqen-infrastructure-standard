@@ -1,0 +1,31 @@
+# TEMPLATE ONLY — copy into a product repository and adapt before use.
+name: Product Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Run secret scanner
+        run: |
+          echo "REPLACE with approved secret scanner and documented baseline"
+          exit 1
+      - name: Run dependency and image vulnerability scans
+        run: |
+          echo "REPLACE with scanners appropriate to the product stack"
+          exit 1
