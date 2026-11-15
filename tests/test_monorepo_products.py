@@ -81,7 +81,7 @@ class MonorepoProductTests(unittest.TestCase):
             base = compose["services"][service_name]["build"]["args"]["BASE_IMAGE"]
             self.assertIn("@sha256:", base)
         lock = json.loads((PRODUCT / "images.lock.json").read_text(encoding="utf-8"))
-        self.assertEqual(lock["images"]["ollama"]["digest"], compose["services"]["ollama"]["build"]["args"]["BASE_IMAGE"].split("@")[-1])
+        self.assertEqual(lock["images"]["ollama"]["digest"], compose["services"]["ollama"]["build"]["args"]["BASE_IMAGE"].split("@")[-1].rstrip("}") )
         self.assertEqual(lock["images"]["openWebUI"]["digest"], compose["services"]["open-webui"]["build"]["args"]["BASE_IMAGE"].split("@")[-1])
 
     def test_build_context_excludes_operator_secrets(self) -> None:
