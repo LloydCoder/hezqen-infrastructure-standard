@@ -27,7 +27,7 @@ The infrastructure bundle aggregates compatible product releases; it must not du
 - `workflows/`: copy-and-adapt CI, security, and release workflow templates; intentionally failing placeholders must be replaced before use.
 - `scripts/`: product-manifest validation, schema validation, release-manifest generation, checksum verification, and artifact-integrity verification.
 - `tests/`: automated verification for HIES tooling and contracts.
-- `docs/`: engineering handbook and lifecycle procedures.
+- `docs/`: engineering handbook, assurance mapping, adoption, release, and security-response procedures.
 
 ## Security principles
 
