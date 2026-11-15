@@ -82,6 +82,11 @@ jobs:
           docker inspect "$UI_ID" --format '{{json .HostConfig.PortBindings}}' | tee /tmp/hezqen-ui-port-bindings.json
           jq -e '."8080/tcp"[0].HostIp == "127.0.0.1" and ."8080/tcp"[0].HostPort == "3000"' /tmp/hezqen-ui-port-bindings.json
           curl --fail --silent --show-error --retry 20 --retry-connrefused --retry-delay 1 --max-time 5 http://127.0.0.1:3000/health
+          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3000/static/favicon.svg -o /dev/null
+          if docker compose logs --no-color open-webui | grep -q "Read-only file system: '/app/backend/open_webui/static"; then
+            echo "Open WebUI attempted to write static assets to its read-only image filesystem" >&2
+            exit 1
+          fi
           OLLAMA_ID="$(docker compose ps -q ollama)"
           PUBLISHED_OLLAMA="$(docker inspect "$OLLAMA_ID" --format '{{range $port, $bindings := .NetworkSettings.Ports}}{{range $bindings}}{{.HostIp}}:{{.HostPort}} {{end}}{{end}}')"
           test -z "$PUBLISHED_OLLAMA"
@@ -90,6 +95,7 @@ jobs:
         run: |
           docker compose exec -T ollama ollama pull qwen2.5:0.5b
           docker compose exec -T ollama ollama pull nomic-embed-text
+          docker compose exec -T ollama ollama list
           docker compose exec -T ollama ollama run qwen2.5:0.5b "Return the token HEZQEN_OK." | grep -qi "HEZQEN_OK"
           docker compose exec -T open-webui python - <<'PY'
           import json
@@ -98,7 +104,15 @@ jobs:
           request = urllib.request.Request("http://ollama:11434/api/embed", data=payload, headers={"Content-Type": "application/json"})
           with urllib.request.urlopen(request, timeout=120) as response:
               result = json.load(response)
-          assert result.get("embeddings") and result["embeddings"][0], "embedding response was empty"
+          embeddings = result.get("embeddings")
+          print(json.dumps({
+              "response_keys": sorted(result),
+              "model": result.get("model"),
+              "embedding_count": len(embeddings) if isinstance(embeddings, list) else 0,
+              "embedding_dimensions": len(embeddings[0]) if isinstance(embeddings, list) and embeddings and isinstance(embeddings[0], list) else 0,
+              "error": result.get("error"),
+          }))
+          assert isinstance(embeddings, list) and embeddings and embeddings[0], "embedding response was empty"
           print("Embedding API smoke passed")
           PY
       - name: Run backup and restore drill

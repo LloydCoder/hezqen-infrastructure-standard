@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -122,6 +124,59 @@ def validate_product(path: Path, schema: dict[str, Any]) -> list[str]:
     return errors
 
 
+
+def normalize_package_name(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def validate_build_tools(root: Path = ROOT) -> list[str]:
+    """Require exact product build-system pins to match the audited requirements file."""
+    errors: list[str] = []
+    requirements_path = root / "requirements-dev.txt"
+    try:
+        lines = requirements_path.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        return [f"unable to read audited development requirements: {exc}"]
+
+    audited_pins: dict[str, str] = {}
+    for line in lines:
+        entry = line.strip()
+        if not entry or entry.startswith("#"):
+            continue
+        name, separator, version = entry.partition("==")
+        if separator and name and version:
+            normalized = normalize_package_name(name)
+            if normalized in audited_pins and audited_pins[normalized] != version:
+                errors.append(f"requirements-dev.txt: conflicting pins for {name}")
+            audited_pins[normalized] = version
+
+    for pyproject in sorted((root / "products").glob("*/pyproject.toml")):
+        try:
+            config = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+            requirements = config.get("build-system", {}).get("requires", [])
+            if not isinstance(requirements, list):
+                errors.append(f"{pyproject}: build-system.requires must be a list")
+                continue
+            for requirement in requirements:
+                if not isinstance(requirement, str):
+                    errors.append(f"{pyproject}: build-system requirements must be strings")
+                    continue
+                name, separator, version = requirement.partition("==")
+                if not separator or not name or not version or any(char in version for char in "<>=!~;"):
+                    errors.append(f"{pyproject}: build requirement must be pinned with ==: {requirement}")
+                    continue
+                normalized = normalize_package_name(name)
+                if normalized not in audited_pins:
+                    errors.append(f"{pyproject}: build requirement {requirement} must be mirrored in requirements-dev.txt")
+                elif audited_pins[normalized] != version:
+                    errors.append(
+                        f"{pyproject}: build requirement {requirement} must match the audited requirements-dev pin {audited_pins[normalized]}"
+                    )
+        except (OSError, tomllib.TOMLDecodeError, AttributeError, TypeError) as exc:
+            errors.append(f"{pyproject}: unable to validate build-system requirements: {exc}")
+    return errors
+
+
 def main() -> int:
     schema_path = ROOT / "schemas" / "product-manifest.schema.json"
     try:
@@ -135,7 +190,7 @@ def main() -> int:
     if not workspaces:
         print("ERROR: no product workspaces found", file=sys.stderr)
         return 1
-    errors = [error for workspace in workspaces for error in validate_product(workspace, schema)]
+    errors = validate_build_tools() + [error for workspace in workspaces for error in validate_product(workspace, schema)]
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
