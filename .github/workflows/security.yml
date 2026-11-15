@@ -29,7 +29,11 @@ jobs:
             git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
           fi
           git checkout --detach FETCH_HEAD
+      - name: Set up pinned Python runtime
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        with:
+          python-version: "3.12.10"
       - name: Run hygiene regression tests
-        run: python3 -m unittest discover -s tests -p 'test_repo_hygiene.py' -v
+        run: python -m unittest discover -s tests -p 'test_repo_hygiene.py' -v
       - name: Scan repository
-        run: python3 scripts/check-repo-hygiene.py .
+        run: python scripts/check-repo-hygiene.py .
