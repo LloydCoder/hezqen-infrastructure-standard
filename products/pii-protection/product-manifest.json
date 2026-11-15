@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "pii-protection",
+  "name": "HEZQEN PII Protection Middleware Kit",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "A fail-closed, local-first JSON PII detection and redaction service with pluggable recognizers, deterministic redaction, and policy enforcement. Detection coverage is explicitly limited and configurable.",
+  "runtime": {
+    "networkRequired": false,
+    "supportedPlatforms": [
+      "linux/amd64"
+    ],
+    "containerized": true
+  },
+  "repository": "https://github.com/LloydCoder/hezqen-infrastructure-standard",
+  "documentation": "https://github.com/LloydCoder/hezqen-infrastructure-standard/tree/main/products/pii-protection",
+  "maintainers": [
+    {
+      "name": "Tinlance / HEZQEN",
+      "url": "https://tinlance.com"
+    }
+  ]
+}

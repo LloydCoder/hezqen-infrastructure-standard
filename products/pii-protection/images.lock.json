@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "platform": "linux/amd64",
+  "verifiedAt": "2026-11-15",
+  "baseImage": {
+    "tag": "python:3.12.16-slim",
+    "digest": "sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b",
+    "manifestType": "linux/amd64 image manifest"
+  }
+}
