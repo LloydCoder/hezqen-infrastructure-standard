@@ -71,7 +71,7 @@ class MonorepoProductTests(unittest.TestCase):
         dockerfile = (PRODUCT / "Dockerfile.ollama").read_text(encoding="utf-8")
         self.assertEqual(service["user"], "10002:10002")
         self.assertEqual(service["build"]["dockerfile"], "Dockerfile.ollama")
-        self.assertIn("adduser --uid 10002", dockerfile)
+        self.assertIn("ollama:x:10002:10002", dockerfile)
         self.assertIn("USER 10002:10002", dockerfile)
         self.assertIn("chown -R 10002:10002 /home/ollama", dockerfile)
 

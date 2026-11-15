@@ -2,8 +2,8 @@ ARG BASE_IMAGE=ollama/ollama:0.40.16
 FROM ${BASE_IMAGE}
 
 USER 0:0
-RUN addgroup --gid 10002 ollama \
-    && adduser --uid 10002 --gid 10002 --home /home/ollama --disabled-password --no-create-home ollama \
+RUN printf '%s\n' 'ollama:x:10002:10002:Ollama:/home/ollama:/bin/false' >> /etc/passwd \
+    && printf '%s\n' 'ollama:x:10002:' >> /etc/group \
     && mkdir -p /home/ollama/.ollama \
     && chown -R 10002:10002 /home/ollama
 
