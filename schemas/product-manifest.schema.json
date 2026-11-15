@@ -64,15 +64,18 @@
     },
     "repository": {
       "type": "string",
-      "format": "uri"
+      "format": "uri",
+      "pattern": "^https?://[^\\\\s]+$"
     },
     "documentation": {
       "type": "string",
-      "format": "uri"
+      "format": "uri",
+      "pattern": "^https?://[^\\\\s]+$"
     },
     "support": {
       "type": "string",
-      "format": "uri"
+      "format": "uri",
+      "pattern": "^https?://[^\\\\s]+$"
     },
     "maintainers": {
       "type": "array",
@@ -89,7 +92,8 @@
           },
           "url": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "pattern": "^https?://[^\\\\s]+$"
           }
         }
       }
