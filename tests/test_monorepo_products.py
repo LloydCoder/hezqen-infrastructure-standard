@@ -46,6 +46,11 @@ class MonorepoProductTests(unittest.TestCase):
                 self.assertIn("healthcheck", service)
                 self.assertNotIn("/var/run/docker.sock", str(service.get("volumes", [])))
 
+    def test_default_cpu_limits_fit_four_core_host(self) -> None:
+        compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(compose["services"]["ollama"]["cpus"], "${OLLAMA_CPUS:-4.0}")
+        self.assertEqual(compose["services"]["open-webui"]["cpus"], "${WEBUI_CPUS:-2.0}")
+
     def test_ui_waits_for_healthy_inference_service(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
         dependency = compose["services"]["open-webui"]["depends_on"]["ollama"]
