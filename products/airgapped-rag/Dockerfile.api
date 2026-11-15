@@ -1,0 +1,14 @@
+FROM python:3.12.16-slim@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
+WORKDIR /app
+RUN groupadd --gid 10003 rag \
+    && useradd --uid 10003 --gid 10003 --home-dir /app --no-create-home --shell /usr/sbin/nologin rag
+COPY --chown=10003:10003 src/ /app/
+USER 10003:10003
+EXPOSE 8090
+HEALTHCHECK --interval=20s --timeout=5s --start-period=15s --retries=5 CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=3)"]
+CMD ["python", "-m", "hezqen_rag.server"]

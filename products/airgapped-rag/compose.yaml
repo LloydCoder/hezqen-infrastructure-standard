@@ -1,0 +1,110 @@
+name: hezqen-airgapped-rag
+
+services:
+  ollama:
+    image: ${OLLAMA_IMAGE:-hezqen/ollama:0.40.16-nonroot}
+    pull_policy: never
+    user: "10002:10002"
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 4096
+    mem_limit: ${OLLAMA_MEMORY_LIMIT:-16g}
+    cpus: ${OLLAMA_CPUS:-2.0}
+    environment:
+      HOME: /home/ollama
+      OLLAMA_MODELS: /home/ollama/.ollama/models
+      OLLAMA_HOST: 0.0.0.0:11434
+    volumes:
+      - ollama_data:/home/ollama/.ollama
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=1g,uid=10002,gid=10002,mode=0700
+    networks: [rag-backend]
+    healthcheck:
+      test: ["CMD", "ollama", "ps"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    stop_grace_period: 60s
+
+  qdrant:
+    image: ${QDRANT_IMAGE:-qdrant/qdrant:v1.20.1-unprivileged@sha256:d18c8e5061be3eaea2f53fbee1f0bf0382dc59cbb9b7112e41ffcc937ec14220}
+    pull_policy: never
+    user: "1000:1000"
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
+    mem_limit: ${QDRANT_MEMORY_LIMIT:-4g}
+    cpus: ${QDRANT_CPUS:-2.0}
+    volumes:
+      - qdrant_storage:/qdrant/storage
+      - qdrant_snapshots:/qdrant/snapshots
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,uid=1000,gid=1000,mode=0700
+    networks: [rag-backend]
+    healthcheck:
+      test: ["CMD", "./qdrant", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    stop_grace_period: 30s
+
+  rag-api:
+    image: ${RAG_API_IMAGE:-hezqen/airgapped-rag-api:0.1.0}
+    pull_policy: never
+    user: "10003:10003"
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: ${RAG_API_MEMORY_LIMIT:-1g}
+    cpus: ${RAG_API_CPUS:-1.0}
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8090
+      MAX_BODY_BYTES: ${MAX_BODY_BYTES:-1048576}
+      OLLAMA_URL: http://ollama:11434
+      QDRANT_URL: http://qdrant:6333
+      RAG_EMBED_MODEL: ${RAG_EMBED_MODEL:-nomic-embed-text}
+      RAG_CHAT_MODEL: ${RAG_CHAT_MODEL:-qwen2.5:0.5b}
+      RAG_COLLECTION: ${RAG_COLLECTION:-hezqen_documents}
+      RAG_CHUNK_SIZE: ${RAG_CHUNK_SIZE:-1200}
+      RAG_CHUNK_OVERLAP: ${RAG_CHUNK_OVERLAP:-160}
+    depends_on:
+      ollama:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    ports:
+      - "${RAG_BIND_ADDRESS:-127.0.0.1}:${RAG_PORT:-8090}:8090"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,uid=10003,gid=10003,mode=0700
+    networks: [rag-backend]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    stop_grace_period: 30s
+
+networks:
+  rag-backend:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
+
+volumes:
+  ollama_data:
+  qdrant_storage:
+  qdrant_snapshots:

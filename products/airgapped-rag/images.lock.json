@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "platform": "linux/amd64",
+  "verifiedAt": "2026-11-15",
+  "images": {
+    "ollama": {
+      "derivedImage": "hezqen/ollama:0.40.16-nonroot",
+      "baseImage": "ollama/ollama:0.40.16",
+      "baseDigest": "sha256:910d0d8107b538fb0894e63163eb195de0cc7aefcbc666dc62d3b18f71124592"
+    },
+    "qdrant": {
+      "image": "qdrant/qdrant:v1.20.1-unprivileged",
+      "digest": "sha256:d18c8e5061be3eaea2f53fbee1f0bf0382dc59cbb9b7112e41ffcc937ec14220"
+    },
+    "ragApi": {
+      "image": "hezqen/airgapped-rag-api:0.1.0",
+      "baseImage": "python:3.12.16-slim",
+      "baseDigest": "sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b"
+    }
+  }
+}
