@@ -57,6 +57,23 @@ class ReleaseMetadataTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             self.assertTrue(VERIFY.verify_artifacts(data, Path(temp)))
 
+    def test_rejects_windows_path_separators(self):
+        data = {"artifacts": [{"name": "..\\\\secret.txt", "sha256": "0" * 64}]}
+        with tempfile.TemporaryDirectory() as temp:
+            self.assertIn(
+                "unsafe artifact path: ..\\\\secret.txt",
+                VERIFY.verify_artifacts(data, Path(temp)),
+            )
+
+    def test_rejects_duplicate_artifact_paths(self):
+        data = {"artifacts": [
+            {"name": "file.txt", "sha256": "0" * 64},
+            {"name": "file.txt", "sha256": "0" * 64},
+        ]}
+        with tempfile.TemporaryDirectory() as temp:
+            errors = VERIFY.verify_artifacts(data, Path(temp))
+            self.assertIn("duplicate artifact path: file.txt", errors)
+
 
 if __name__ == "__main__":
     unittest.main()
