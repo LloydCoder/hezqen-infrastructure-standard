@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+umask 077
 
 PRODUCT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$PRODUCT_DIR"
@@ -54,17 +55,19 @@ restart_stack() {
 }
 trap restart_stack EXIT
 
+# Stream archives to host-side redirections. This keeps files owned by the
+# invoking operator even when the Docker daemon uses user namespaces/rootless mode.
 docker run --rm --network none --user 0:0 \
   --mount "type=volume,src=$OLLAMA_VOLUME,dst=/source,readonly" \
-  --mount "type=bind,src=$BACKUP_DIR,dst=/backup" \
   --entrypoint /bin/sh "$HELPER_IMAGE" -euc \
-  'tar --numeric-owner -czf /backup/ollama_data.tar.gz -C /source . && sha256sum /backup/ollama_data.tar.gz > /backup/ollama_data.tar.gz.sha256'
+  'tar --numeric-owner -czf - -C /source .' > "$BACKUP_DIR/ollama_data.tar.gz"
+sha256sum "$BACKUP_DIR/ollama_data.tar.gz" > "$BACKUP_DIR/ollama_data.tar.gz.sha256"
 
 docker run --rm --network none --user 0:0 \
   --mount "type=volume,src=$WEBUI_VOLUME,dst=/source,readonly" \
-  --mount "type=bind,src=$BACKUP_DIR,dst=/backup" \
   --entrypoint /bin/sh "$HELPER_IMAGE" -euc \
-  'tar --numeric-owner -czf /backup/open_webui_data.tar.gz -C /source . && sha256sum /backup/open_webui_data.tar.gz > /backup/open_webui_data.tar.gz.sha256'
+  'tar --numeric-owner -czf - -C /source .' > "$BACKUP_DIR/open_webui_data.tar.gz"
+sha256sum "$BACKUP_DIR/open_webui_data.tar.gz" > "$BACKUP_DIR/open_webui_data.tar.gz.sha256"
 
 python3 - "$BACKUP_DIR" "$PROJECT_NAME" "$OLLAMA_VOLUME" "$WEBUI_VOLUME" <<'PY'
 import json
@@ -94,5 +97,5 @@ manifest = {
 )
 PY
 
-chmod 600 "$BACKUP_DIR"/*
+chmod 600 "$BACKUP_DIR/backup-manifest.json" "$BACKUP_DIR/ollama_data.tar.gz" "$BACKUP_DIR/ollama_data.tar.gz.sha256" "$BACKUP_DIR/open_webui_data.tar.gz" "$BACKUP_DIR/open_webui_data.tar.gz.sha256"
 echo "Backup created at: $BACKUP_DIR"

@@ -23,25 +23,30 @@ docker volume create "$WEBUI_TEST_VOLUME" >/dev/null
 docker run --rm --network none --user 0:0 \
   --mount "type=volume,src=$OLLAMA_TEST_VOLUME,dst=/data" \
   --entrypoint /bin/sh "$HELPER_IMAGE" -euc \
-  'mkdir -p /data/models && printf "ollama-volume-original\n" > /data/models/backup-smoke.txt && chown -R 10002:10002 /data'
+  'mkdir -p /data/models && printf "ollama-volume-original\\n" > /data/models/backup-smoke.txt && chown -R 10002:10002 /data'
 
 docker run --rm --network none --user 0:0 \
   --mount "type=volume,src=$WEBUI_TEST_VOLUME,dst=/data" \
   --entrypoint /bin/sh "$HELPER_IMAGE" -euc \
-  'mkdir -p /data/uploads && printf "webui-volume-original\n" > /data/uploads/backup-smoke.txt && chown -R 10001:10001 /data'
+  'mkdir -p /data/uploads && printf "webui-volume-original\\n" > /data/uploads/backup-smoke.txt && chown -R 10001:10001 /data'
 
 OLLAMA_VOLUME="$OLLAMA_TEST_VOLUME" WEBUI_VOLUME="$WEBUI_TEST_VOLUME" BACKUP_HELPER_IMAGE="$HELPER_IMAGE" \
   "$PRODUCT/scripts/backup.sh" "$BACKUP_DIR"
 
+for artifact in "$BACKUP_DIR"/*; do
+  test "$(stat -c '%a' "$artifact")" = "600"
+  test "$(stat -c '%u' "$artifact")" = "$(id -u)"
+done
+
 docker run --rm --network none --user 0:0 \
   --mount "type=volume,src=$OLLAMA_TEST_VOLUME,dst=/data" \
   --entrypoint /bin/sh "$HELPER_IMAGE" -euc \
-  'printf "mutated\n" > /data/models/backup-smoke.txt'
+  'printf "mutated\\n" > /data/models/backup-smoke.txt'
 
 docker run --rm --network none --user 0:0 \
   --mount "type=volume,src=$WEBUI_TEST_VOLUME,dst=/data" \
   --entrypoint /bin/sh "$HELPER_IMAGE" -euc \
-  'printf "mutated\n" > /data/uploads/backup-smoke.txt'
+  'printf "mutated\\n" > /data/uploads/backup-smoke.txt'
 
 OLLAMA_VOLUME="$OLLAMA_TEST_VOLUME" WEBUI_VOLUME="$WEBUI_TEST_VOLUME" BACKUP_HELPER_IMAGE="$HELPER_IMAGE" \
   "$PRODUCT/scripts/restore.sh" "$BACKUP_DIR" --confirm
