@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "hies-sample-product",
+  "name": "HIES Sample Product",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Synthetic sample demonstrating HIES product metadata and release validation.",
+  "runtime": {
+    "networkRequired": false,
+    "supportedPlatforms": [
+      "linux/amd64"
+    ],
+    "containerized": false
+  },
+  "repository": "https://github.com/LloydCoder/hezqen-infrastructure-standard",
+  "documentation": "https://github.com/LloydCoder/hezqen-infrastructure-standard/tree/main/examples/sample-product"
+}
