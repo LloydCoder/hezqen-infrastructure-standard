@@ -34,20 +34,34 @@ docker image inspect "$HELPER_IMAGE" >/dev/null 2>&1 || {
 }
 
 [[ -f "$BACKUP_DIR/backup-manifest.json" ]] || { echo "backup-manifest.json is missing" >&2; exit 1; }
-python3 - "$BACKUP_DIR/backup-manifest.json" <<'PY'
+python3 - "$BACKUP_DIR" <<'PY'
 import json
 import sys
-from pathlib import Path
+import tarfile
+from pathlib import Path, PurePosixPath
 
-manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-if manifest.get("schemaVersion") != "1.0.0":
-    raise SystemExit("Unsupported backup manifest schema")
-expected = {
-    "ollama": "ollama_data.tar.gz",
-    "openWebUI": "open_webui_data.tar.gz",
-}
+directory = Path(sys.argv[1])
+manifest = json.loads((directory / "backup-manifest.json").read_text(encoding="utf-8"))
+if manifest.get("schemaVersion") != "1.0.0" or manifest.get("product") != "local-ai-deployment":
+    raise SystemExit("Unsupported or mismatched backup manifest")
+expected = {"ollama": "ollama_data.tar.gz", "openWebUI": "open_webui_data.tar.gz"}
 if manifest.get("archives") != expected:
     raise SystemExit("Backup manifest archive map is invalid")
+for filename in expected.values():
+    archive = directory / filename
+    if not archive.is_file():
+        raise SystemExit(f"Backup archive is missing: {filename}")
+    with tarfile.open(archive, "r:gz") as tar:
+        for member in tar.getmembers():
+            path = PurePosixPath(member.name)
+            if path.is_absolute() or ".." in path.parts:
+                raise SystemExit(f"Unsafe archive path: {member.name}")
+            if member.issym() or member.islnk():
+                target = PurePosixPath(member.linkname)
+                if target.is_absolute() or ".." in target.parts:
+                    raise SystemExit(f"Unsafe archive link: {member.name} -> {member.linkname}")
+            if member.isdev() or member.isfifo():
+                raise SystemExit(f"Unsupported special archive entry: {member.name}")
 PY
 
 (
@@ -56,16 +70,10 @@ PY
   sha256sum -c open_webui_data.tar.gz.sha256
 )
 
-docker run --rm --network none \
-  --mount "type=bind,src=$BACKUP_DIR,dst=/backup,readonly" \
-  --entrypoint /bin/sh "$HELPER_IMAGE" -euc '
-for archive in /backup/ollama_data.tar.gz /backup/open_webui_data.tar.gz; do
-  if tar -tzf "$archive" | grep -Eq "(^/|(^|/)\.\.(/|$))"; then
-    echo "Unsafe path found in archive: $archive" >&2
-    exit 1
-  fi
-done
-'
+docker image inspect "$HELPER_IMAGE" >/dev/null 2>&1 || {
+  echo "Backup helper image not found: $HELPER_IMAGE. Build the product images first." >&2
+  exit 1
+}
 
 docker volume inspect "$OLLAMA_VOLUME" >/dev/null 2>&1 || docker volume create "$OLLAMA_VOLUME" >/dev/null
 docker volume inspect "$WEBUI_VOLUME" >/dev/null 2>&1 || docker volume create "$WEBUI_VOLUME" >/dev/null
@@ -86,16 +94,14 @@ restart_stack() {
 }
 trap restart_stack EXIT
 
-docker run --rm --network none --user 0:0 \
+docker run -i --rm --network none --user 0:0 \
   --mount "type=volume,src=$OLLAMA_VOLUME,dst=/target" \
-  --mount "type=bind,src=$BACKUP_DIR,dst=/backup,readonly" \
   --entrypoint /bin/sh "$HELPER_IMAGE" -euc \
-  'rm -rf /target/* /target/.[!.]* /target/..?* 2>/dev/null || true; tar --numeric-owner -xzf /backup/ollama_data.tar.gz -C /target'
+  'rm -rf /target/* /target/.[!.]* /target/..?* 2>/dev/null || true; tar --numeric-owner -xzf - -C /target' < "$BACKUP_DIR/ollama_data.tar.gz"
 
-docker run --rm --network none --user 0:0 \
+docker run -i --rm --network none --user 0:0 \
   --mount "type=volume,src=$WEBUI_VOLUME,dst=/target" \
-  --mount "type=bind,src=$BACKUP_DIR,dst=/backup,readonly" \
   --entrypoint /bin/sh "$HELPER_IMAGE" -euc \
-  'rm -rf /target/* /target/.[!.]* /target/..?* 2>/dev/null || true; tar --numeric-owner -xzf /backup/open_webui_data.tar.gz -C /target'
+  'rm -rf /target/* /target/.[!.]* /target/..?* 2>/dev/null || true; tar --numeric-owner -xzf - -C /target' < "$BACKUP_DIR/open_webui_data.tar.gz"
 
 echo "Restore completed for volumes: $OLLAMA_VOLUME and $WEBUI_VOLUME"

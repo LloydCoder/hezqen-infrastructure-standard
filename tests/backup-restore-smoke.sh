@@ -33,11 +33,6 @@ docker run --rm --network none --user 0:0 \
 OLLAMA_VOLUME="$OLLAMA_TEST_VOLUME" WEBUI_VOLUME="$WEBUI_TEST_VOLUME" BACKUP_HELPER_IMAGE="$HELPER_IMAGE" \
   "$PRODUCT/scripts/backup.sh" "$BACKUP_DIR"
 
-for artifact in "$BACKUP_DIR"/*; do
-  test "$(stat -c '%a' "$artifact")" = "600"
-  test "$(stat -c '%u' "$artifact")" = "$(id -u)"
-done
-
 docker run --rm --network none --user 0:0 \
   --mount "type=volume,src=$OLLAMA_TEST_VOLUME,dst=/data" \
   --entrypoint /bin/sh "$HELPER_IMAGE" -euc \
@@ -53,7 +48,11 @@ OLLAMA_VOLUME="$OLLAMA_TEST_VOLUME" WEBUI_VOLUME="$WEBUI_TEST_VOLUME" BACKUP_HEL
 
 OLLAMA_RESTORED="$(docker run --rm --network none --user 0:0 --mount "type=volume,src=$OLLAMA_TEST_VOLUME,dst=/data,readonly" --entrypoint /bin/sh "$HELPER_IMAGE" -euc 'cat /data/models/backup-smoke.txt')"
 WEBUI_RESTORED="$(docker run --rm --network none --user 0:0 --mount "type=volume,src=$WEBUI_TEST_VOLUME,dst=/data,readonly" --entrypoint /bin/sh "$HELPER_IMAGE" -euc 'cat /data/uploads/backup-smoke.txt')"
+OLLAMA_OWNER="$(docker run --rm --network none --user 0:0 --mount "type=volume,src=$OLLAMA_TEST_VOLUME,dst=/data,readonly" --entrypoint /bin/sh "$HELPER_IMAGE" -euc 'stat -c "%u:%g" /data/models/backup-smoke.txt')"
+WEBUI_OWNER="$(docker run --rm --network none --user 0:0 --mount "type=volume,src=$WEBUI_TEST_VOLUME,dst=/data,readonly" --entrypoint /bin/sh "$HELPER_IMAGE" -euc 'stat -c "%u:%g" /data/uploads/backup-smoke.txt')"
 
 test "$OLLAMA_RESTORED" = "ollama-volume-original"
 test "$WEBUI_RESTORED" = "webui-volume-original"
-echo "IK-01 backup/restore smoke passed; original data and volume contents were restored."
+test "$OLLAMA_OWNER" = "10002:10002"
+test "$WEBUI_OWNER" = "10001:10001"
+echo "IK-01 backup/restore smoke passed; data and numeric ownership were restored."

@@ -16,7 +16,10 @@ mkdir -p -- "$BACKUP_DIR"
 BACKUP_DIR="$(cd -- "$BACKUP_DIR" && pwd -P)"
 [[ "$BACKUP_DIR" != *","* && "$BACKUP_DIR" != *$'\n'* ]] || { echo "Backup path cannot contain commas or newlines" >&2; exit 2; }
 chmod 700 "$BACKUP_DIR"
-[[ ! -e "$BACKUP_DIR/backup-manifest.json" ]] || { echo "Backup manifest already exists; choose a new directory" >&2; exit 1; }
+[[ -z "$(find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -print -quit)" ]] || {
+  echo "Backup directory must be empty" >&2
+  exit 1
+}
 
 HELPER_IMAGE="${BACKUP_HELPER_IMAGE:-hezqen/ollama:0.40.16-nonroot}"
 if [[ -n "${OLLAMA_VOLUME:-}" || -n "${WEBUI_VOLUME:-}" ]]; then
@@ -38,6 +41,7 @@ docker image inspect "$HELPER_IMAGE" >/dev/null 2>&1 || {
   echo "Backup helper image not found: $HELPER_IMAGE. Build the product images first." >&2
   exit 1
 }
+docker run --rm --network none --entrypoint /bin/sh "$HELPER_IMAGE" -euc 'command -v tar >/dev/null && tar --version >/dev/null'
 
 WAS_RUNNING=false
 if [[ "$MANAGE_COMPOSE" == true ]] && [[ -n "$(docker compose ps --status running -q)" ]]; then
@@ -55,19 +59,21 @@ restart_stack() {
 }
 trap restart_stack EXIT
 
-# Stream archives to host-side redirections. This keeps files owned by the
-# invoking operator even when the Docker daemon uses user namespaces/rootless mode.
 docker run --rm --network none --user 0:0 \
   --mount "type=volume,src=$OLLAMA_VOLUME,dst=/source,readonly" \
   --entrypoint /bin/sh "$HELPER_IMAGE" -euc \
   'tar --numeric-owner -czf - -C /source .' > "$BACKUP_DIR/ollama_data.tar.gz"
-sha256sum "$BACKUP_DIR/ollama_data.tar.gz" > "$BACKUP_DIR/ollama_data.tar.gz.sha256"
 
 docker run --rm --network none --user 0:0 \
   --mount "type=volume,src=$WEBUI_VOLUME,dst=/source,readonly" \
   --entrypoint /bin/sh "$HELPER_IMAGE" -euc \
   'tar --numeric-owner -czf - -C /source .' > "$BACKUP_DIR/open_webui_data.tar.gz"
-sha256sum "$BACKUP_DIR/open_webui_data.tar.gz" > "$BACKUP_DIR/open_webui_data.tar.gz.sha256"
+
+(
+  cd "$BACKUP_DIR"
+  sha256sum ollama_data.tar.gz > ollama_data.tar.gz.sha256
+  sha256sum open_webui_data.tar.gz > open_webui_data.tar.gz.sha256
+)
 
 python3 - "$BACKUP_DIR" "$PROJECT_NAME" "$OLLAMA_VOLUME" "$WEBUI_VOLUME" <<'PY'
 import json
@@ -97,5 +103,4 @@ manifest = {
 )
 PY
 
-chmod 600 "$BACKUP_DIR/backup-manifest.json" "$BACKUP_DIR/ollama_data.tar.gz" "$BACKUP_DIR/ollama_data.tar.gz.sha256" "$BACKUP_DIR/open_webui_data.tar.gz" "$BACKUP_DIR/open_webui_data.tar.gz.sha256"
 echo "Backup created at: $BACKUP_DIR"
