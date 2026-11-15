@@ -121,7 +121,7 @@ HIES is configured through version-controlled schemas, product manifests, Compos
 
 | Contract | Location | Purpose |
 |---|---|---|
-| Product manifest | products/<id>/product-manifest.json | Product identity, version, runtime, and support metadata |
+| Product manifest | products/&lt;id&gt;/product-manifest.json | Product identity, version, runtime, and support metadata |
 | Manifest schema | schemas/product-manifest.schema.json | Validates product manifest structure |
 | Compatibility | schemas/compatibility.schema.json | Describes supported environments and evidence |
 | Compatibility matrix | schemas/compatibility-matrix.schema.json | Records compatibility |

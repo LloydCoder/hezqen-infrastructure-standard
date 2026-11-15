@@ -5,7 +5,7 @@
 | standards/ | Normative architecture, security, quality, licensing, and operations requirements |
 | schemas/ | JSON Schema contracts for product manifests, compatibility, benchmarks, and artifacts |
 | scripts/ | Validation, hygiene, release metadata, and checksum tooling |
-| products/<id>/ | Independently versioned product source, configuration, tests, documentation, and manifests |
+| products/&lt;id&gt;/ | Independently versioned product source, configuration, tests, documentation, and manifests |
 | templates/ | Reusable product threat model, security, support, runbook, and release templates |
 | tests/ | Shared validator and product contract regression tests |
 | .github/workflows/ | Active repository CI, security, and product runtime workflows |
