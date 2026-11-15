@@ -47,5 +47,5 @@ MODELS="$(docker compose exec -T ollama ollama list)"
 while IFS= read -r model; do
   [[ -n "$model" ]] || continue
   grep -F "$model" <<<"$MODELS" >/dev/null || { echo "Required offline model missing: $model" >&2; exit 1; }
-done < <(python3 -c 'import json; print("\\n".join(json.load(open("manifest.json"))["models"]))')
+done < <(python3 -c 'import json; print("\n".join(json.load(open("manifest.json"))["models"]))')
 echo "Offline RAG stack installed. API: http://127.0.0.1:8090"

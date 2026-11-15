@@ -52,7 +52,7 @@ manifest = {
     "models": models.split(),
     "embeddingModel": __import__("os").getenv("HEZQEN_EMBED_MODEL", "nomic-embed-text"),
     "chatModel": __import__("os").getenv("HEZQEN_CHAT_MODEL", "qwen2.5:0.5b"),
-    "artifacts": ["images.tar", "models.tar.gz", "compose.yaml", ".env.example", "install.sh", "README.md"],
+    "artifacts": ["images.tar", "models.tar.gz", "compose.yaml", ".env.example", "images.lock.json", "install.sh", "README.md"],
 }
 (Path(directory) / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 PY
