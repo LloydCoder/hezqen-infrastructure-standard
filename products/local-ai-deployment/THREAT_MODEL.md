@@ -18,7 +18,7 @@ This model covers the default single-host deployment of Ollama and Open WebUI us
 3. Open WebUI host ingress through a dedicated bridge network with IP masquerading disabled.
 4. Ollama container to the model-egress network for model downloads.
 5. Non-root application processes to the host through Docker Engine, mounted volumes, and optional GPU devices.
-6. Host to external registries/model sources during image and model downloads.
+6. Host to immutable upstream base images and external model sources during build/pull operations.
 
 ## Threats and controls
 
@@ -31,7 +31,7 @@ This model covers the default single-host deployment of Ollama and Open WebUI us
 | Model server egress | Only Ollama is attached to the model-egress network | Egress is not allowlisted by this Compose file; enforce policy at host/network layer |
 | Container privilege escalation | Non-root UIDs, dropped capabilities, no-new-privileges, read-only root FS, PID/resource limits | Docker daemon is privileged; host kernel/container runtime remain trusted |
 | Data loss | Named persistent volumes and documented backup/restore | Backups can be incomplete or untested |
-| Supply-chain compromise | Version-pinned upstream bases; release requires digest lock, SBOM, provenance, and review | Upstream publisher compromise and unreviewed model artifacts |
+| Supply-chain compromise | Base images pinned by digest, SBOM/provenance release gates | Upstream publisher compromise and unreviewed model artifacts |
 | Malicious or unsafe model artifact | Model/license review and explicit pull workflow | Model behavior and licensing cannot be fully guaranteed |
 
 ## Security assumptions and limitations

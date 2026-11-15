@@ -2,14 +2,14 @@
 
 A hardened, local-first inference workspace using Ollama for model serving and the slim Open WebUI image for the operator interface. Both application containers are built to run as non-root users. The default UI is published only on host loopback; the Ollama API is not published. Open WebUI reaches Ollama over a private inference network and uses a dedicated no-masquerade bridge for loopback ingress, without joining Ollama's egress network.
 
-> **Status: engineering preview.** Static CI and a CPU runtime smoke test are implemented for Linux/amd64. A production release still requires immutable base-image digest locking, backup/restore drill, SBOM/provenance generation, and security review of the exact upstream images. NVIDIA GPU runtime is not yet verified.
+> **Status: engineering preview.** Static CI and a Linux/amd64 CPU runtime test now build and start both non-root images, verify network boundaries, run a small chat model, and exercise the Ollama embedding API. A production release still requires a completed backup/restore drill, SBOM/provenance generation, and NVIDIA GPU acceptance testing.
 
 ## What is included
 
-- Docker Compose deployment with versioned upstream base images and local non-root derived images.
+- Docker Compose deployment with upstream base images pinned by immutable SHA-256 digest in [images.lock.json](images.lock.json).
+- Local non-root derived images: Ollama UID 10002 and Open WebUI UID 10001.
 - Ollama on a private inference network plus a separate egress network for model pulls; no host-published API port.
 - Open WebUI on the private inference network and a dedicated no-masquerade UI bridge, published to `127.0.0.1:3000` by default.
-- Non-root runtime identities: Ollama UID 10002 and Open WebUI UID 10001.
 - Slim Open WebUI image with embeddings routed to Ollama.
 - Explicit no-tracking environment settings for Open WebUI.
 - Persistent named volumes for model and application data.
@@ -68,6 +68,7 @@ The NVIDIA override grants access to GPU devices only to the Ollama service. The
 ## Security model
 
 - Both application containers run as non-root numeric users (Ollama 10002, Open WebUI 10001).
+- Upstream base images are pinned by immutable SHA-256 digest; see `images.lock.json`.
 - Default host exposure is loopback only.
 - Ollama is reachable by Open WebUI over the internal Compose network, not via a published host port.
 - Open WebUI is attached to the internal inference network and a dedicated bridge with IP masquerading disabled. It is not attached to the model-egress network.
@@ -84,7 +85,7 @@ See [THREAT_MODEL.md](THREAT_MODEL.md), [SECURITY.md](SECURITY.md), [operations]
 
 ## Configuration
 
-See `.env.example`. Change ports, bind address, resource limits, and image tags only after reviewing the threat model and compatibility notes. For production releases, resolve and commit immutable upstream base-image digests; version tags alone are not sufficient release provenance.
+See `.env.example`. Change ports, bind address, resource limits, and image references only after reviewing the threat model and compatibility notes. Do not replace digest-pinned base images with mutable tags in production.
 
 ## Verification
 
@@ -96,4 +97,4 @@ python3 scripts/validate-monorepo.py
 python3 -m unittest discover -s tests -v
 ```
 
-The automated runtime smoke test builds the non-root images, starts the CPU Compose stack, verifies process UIDs, health, loopback binding, internal service connectivity, and UI egress isolation. It does not test model inference, NVIDIA GPU operation, ARM64, multi-user load, or production hardening of the host.
+The automated runtime smoke test builds the non-root images, starts the CPU Compose stack, verifies process UIDs, health, loopback binding, internal service connectivity, UI egress isolation, a small chat inference, and an embedding API response. It does not test NVIDIA GPU operation, ARM64, multi-user load, backup/restore, or production hardening of the host.

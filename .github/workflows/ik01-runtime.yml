@@ -27,7 +27,7 @@ jobs:
   cpu-runtime:
     name: Linux amd64 Compose runtime and network smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Check out exact source revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -53,11 +53,13 @@ jobs:
       - name: Build non-root product images
         working-directory: products/local-ai-deployment
         run: docker compose build --pull
-      - name: Print upstream base image digests
+      - name: Verify pinned upstream base image digests
         working-directory: products/local-ai-deployment
         run: |
-          docker buildx imagetools inspect ollama/ollama:0.40.16 | awk '/^Digest:/ {print "OLLAMA_BASE_DIGEST=" $2}'
-          docker buildx imagetools inspect ghcr.io/open-webui/open-webui:v0.13.2-slim | awk '/^Digest:/ {print "OPEN_WEBUI_BASE_DIGEST=" $2}'
+          OLLAMA_DIGEST="$(docker buildx imagetools inspect ollama/ollama:0.40.16 | awk '/^Digest:/ {print $2}')"
+          WEBUI_DIGEST="$(docker buildx imagetools inspect ghcr.io/open-webui/open-webui:v0.13.2-slim | awk '/^Digest:/ {print $2}')"
+          test "$OLLAMA_DIGEST" = "sha256:910d0d8107b538fb0894e63163eb195de0cc7aefcbc666dc62d3b18f71124592"
+          test "$WEBUI_DIGEST" = "sha256:ea9fee9b0d83a4d73f5ddb7e23ccf42bc3514aaebc7382247af1287871397140"
       - name: Start stack and wait for health
         working-directory: products/local-ai-deployment
         run: docker compose up -d --no-build --wait --wait-timeout 300
@@ -76,6 +78,22 @@ jobs:
           OLLAMA_ID="$(docker compose ps -q ollama)"
           PUBLISHED_OLLAMA="$(docker inspect "$OLLAMA_ID" --format '{{range $port, $bindings := .NetworkSettings.Ports}}{{range $bindings}}{{.HostIp}}:{{.HostPort}} {{end}}{{end}}')"
           test -z "$PUBLISHED_OLLAMA"
+      - name: Verify CPU model inference and embedding
+        working-directory: products/local-ai-deployment
+        run: |
+          docker compose exec -T ollama ollama pull qwen2.5:0.5b
+          docker compose exec -T ollama ollama pull nomic-embed-text
+          docker compose exec -T ollama ollama run qwen2.5:0.5b "Return the token HEZQEN_OK." | grep -qi "HEZQEN_OK"
+          docker compose exec -T open-webui python - <<'PY'
+          import json
+          import urllib.request
+          payload = json.dumps({"model": "nomic-embed-text", "input": "HEZQEN embedding smoke"}).encode()
+          request = urllib.request.Request("http://ollama:11434/api/embed", data=payload, headers={"Content-Type": "application/json"})
+          with urllib.request.urlopen(request, timeout=120) as response:
+              result = json.load(response)
+          assert result.get("embeddings") and result["embeddings"][0], "embedding response was empty"
+          print("Embedding API smoke passed")
+          PY
       - name: Verify UI-to-inference connectivity
         working-directory: products/local-ai-deployment
         run: |

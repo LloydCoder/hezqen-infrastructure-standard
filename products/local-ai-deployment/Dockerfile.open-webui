@@ -1,9 +1,9 @@
-ARG BASE_IMAGE=ghcr.io/open-webui/open-webui:v0.13.2-slim
+ARG BASE_IMAGE=ghcr.io/open-webui/open-webui@sha256:ea9fee9b0d83a4d73f5ddb7e23ccf42bc3514aaebc7382247af1287871397140
 FROM ${BASE_IMAGE}
 
 USER 0:0
 RUN addgroup --gid 10001 app \
-    && adduser --uid 10001 --gid 10001 --home /root --disabled-password --no-create-home app \
+    && adduser --uid 10001 --gid 10001 --home /root --disabled-password --no-create-home --gecos "" app \
     && chown -R 10001:10001 /app /root
 
 ENV HOME=/root

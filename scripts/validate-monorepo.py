@@ -71,6 +71,9 @@ def validate_product(path: Path, schema: dict[str, Any]) -> list[str]:
                 dockerfile = build.get("dockerfile")
                 if not dockerfile or not (path / dockerfile).is_file():
                     errors.append(f"local-ai-deployment: {service_name} must use a checked-in derived Dockerfile")
+                base_image = str(build.get("args", {}).get("BASE_IMAGE", ""))
+                if "@sha256:" not in base_image:
+                    errors.append(f"local-ai-deployment: {service_name} base image must be digest-pinned")
             if ollama.get("ports"):
                 errors.append("local-ai-deployment: Ollama API must not publish a host port")
             ports = webui.get("ports", [])

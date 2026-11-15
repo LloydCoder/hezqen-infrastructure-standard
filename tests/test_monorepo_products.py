@@ -75,6 +75,15 @@ class MonorepoProductTests(unittest.TestCase):
         self.assertIn("USER 10002:10002", dockerfile)
         self.assertIn("chown -R 10002:10002 /home/ollama", dockerfile)
 
+    def test_base_images_are_pinned_by_digest(self) -> None:
+        compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
+        for service_name in ("ollama", "open-webui"):
+            base = compose["services"][service_name]["build"]["args"]["BASE_IMAGE"]
+            self.assertIn("@sha256:", base)
+        lock = json.loads((PRODUCT / "images.lock.json").read_text(encoding="utf-8"))
+        self.assertEqual(lock["images"]["ollama"]["digest"], compose["services"]["ollama"]["build"]["args"]["BASE_IMAGE"].split("@")[-1])
+        self.assertEqual(lock["images"]["openWebUI"]["digest"], compose["services"]["open-webui"]["build"]["args"]["BASE_IMAGE"].split("@")[-1])
+
     def test_build_context_excludes_operator_secrets(self) -> None:
         dockerignore = (PRODUCT / ".dockerignore").read_text(encoding="utf-8")
         self.assertIn(".env", dockerignore)
@@ -120,6 +129,7 @@ class MonorepoProductTests(unittest.TestCase):
             names.index("Start stack and wait for health"),
         )
         self.assertIn("Verify Open WebUI and Ollama run as non-root", names)
+        self.assertIn("Verify CPU model inference and embedding", names)
 
     def test_runtime_workflow_creates_secret_before_compose_validation(self) -> None:
         workflow = yaml.safe_load(RUNTIME_WORKFLOW.read_text(encoding="utf-8"))

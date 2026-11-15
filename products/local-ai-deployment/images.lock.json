@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "verifiedAt": "2026-11-15",
+  "platform": "linux/amd64",
+  "images": {
+    "ollama": {
+      "tag": "ollama/ollama:0.40.16",
+      "digest": "sha256:910d0d8107b538fb0894e63163eb195de0cc7aefcbc666dc62d3b18f71124592",
+      "derivedImage": "hezqen/ollama:0.40.16-nonroot"
+    },
+    "openWebUI": {
+      "tag": "ghcr.io/open-webui/open-webui:v0.13.2-slim",
+      "digest": "sha256:ea9fee9b0d83a4d73f5ddb7e23ccf42bc3514aaebc7382247af1287871397140",
+      "derivedImage": "hezqen/open-webui:0.13.2-slim-nonroot"
+    }
+  }
+}
