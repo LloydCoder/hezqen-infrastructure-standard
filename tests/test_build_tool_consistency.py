@@ -1,14 +1,17 @@
 from __future__ import annotations
 
-import sys
+import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-
-from scripts.validate_monorepo import validate_build_tools
+SPEC = importlib.util.spec_from_file_location("validate_monorepo", ROOT / "scripts" / "validate-monorepo.py")
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError("Unable to load monorepo validator for tests")
+VALIDATOR = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(VALIDATOR)
+validate_build_tools = VALIDATOR.validate_build_tools
 
 
 class BuildToolConsistencyTests(unittest.TestCase):
