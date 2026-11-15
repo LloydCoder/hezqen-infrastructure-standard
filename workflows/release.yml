@@ -1,0 +1,51 @@
+# TEMPLATE ONLY — do not enable until release signing, provenance, and registry settings are configured.
+name: Product Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout exact release tag
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Verify tag points to protected release commit
+        run: |
+          test "${GITHUB_REF_TYPE}" = "tag"
+          git verify-tag "${GITHUB_REF_NAME}" || {
+            echo "A signed annotated tag is required; configure trusted signing keys."
+            exit 1
+          }
+      - name: Build and test release artifact
+        run: |
+          echo "REPLACE with deterministic product build and acceptance tests"
+          exit 1
+      - name: Generate SBOM, checksums, and release manifest
+        run: |
+          echo "REPLACE with verified CycloneDX SBOM generation and HIES metadata scripts"
+          exit 1
+      - name: Generate build provenance and sign artifacts
+        run: |
+          echo "REPLACE with an approved provenance and signing implementation"
+          exit 1
+      - name: Verify release outputs before publication
+        run: |
+          echo "REPLACE with checksum, signature, provenance, and SBOM verification"
+          exit 1
