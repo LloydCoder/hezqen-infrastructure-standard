@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hezqen.com/schemas/compatibility.schema.json",
+  "title": "HEZQEN Compatibility Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "productVersion",
+    "testedAt",
+    "environment",
+    "result"
+  ],
+  "properties": {
+    "productVersion": {
+      "type": "string"
+    },
+    "testedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "os",
+        "architecture"
+      ],
+      "properties": {
+        "os": {
+          "type": "string"
+        },
+        "architecture": {
+          "type": "string"
+        },
+        "kernel": {
+          "type": "string"
+        },
+        "runtime": {
+          "type": "string"
+        },
+        "hardware": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "result": {
+      "enum": [
+        "passed",
+        "failed",
+        "not-run",
+        "unsupported"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
