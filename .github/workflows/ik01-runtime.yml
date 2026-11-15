@@ -82,6 +82,11 @@ jobs:
           docker inspect "$UI_ID" --format '{{json .HostConfig.PortBindings}}' | tee /tmp/hezqen-ui-port-bindings.json
           jq -e '."8080/tcp"[0].HostIp == "127.0.0.1" and ."8080/tcp"[0].HostPort == "3000"' /tmp/hezqen-ui-port-bindings.json
           curl --fail --silent --show-error --retry 20 --retry-connrefused --retry-delay 1 --max-time 5 http://127.0.0.1:3000/health
+          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3000/static/favicon.svg -o /dev/null
+          if docker compose logs --no-color open-webui | grep -q "Read-only file system: '/app/backend/open_webui/static"; then
+            echo "Open WebUI attempted to write static assets to its read-only image filesystem" >&2
+            exit 1
+          fi
           OLLAMA_ID="$(docker compose ps -q ollama)"
           PUBLISHED_OLLAMA="$(docker inspect "$OLLAMA_ID" --format '{{range $port, $bindings := .NetworkSettings.Ports}}{{range $bindings}}{{.HostIp}}:{{.HostPort}} {{end}}{{end}}')"
           test -z "$PUBLISHED_OLLAMA"
