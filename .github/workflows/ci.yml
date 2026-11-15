@@ -41,6 +41,10 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Validate JSON Schema Draft 2020-12 contracts and fixtures
         run: python scripts/validate-schemas.py
+      - name: Validate sample product manifest
+        run: python scripts/validate-manifest.py examples/sample-product/product-manifest.json
+      - name: Validate sample release manifest and artifact checksums
+        run: python scripts/validate-release-metadata.py examples/sample-product/artifact-manifest.json --artifact-root examples/sample-product/artifacts
       - name: Validate all checked-in JSON documents
         run: |
           python - <<'PY'
