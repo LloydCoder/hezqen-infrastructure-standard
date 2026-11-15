@@ -15,7 +15,7 @@ validate_build_tools = VALIDATOR.validate_build_tools
 
 
 class BuildToolConsistencyTests(unittest.TestCase):
-    def write_fixture(self, root: Path, requirement: str) -> None:
+    def write_fixture(self, root: Path, requirement: str, audited_requirement: str = "setuptools==84.2.1") -> None:
         (root / "requirements-dev.txt").write_text(
             f"pip-audit==2.10.1\n{requirement}\n",
             encoding="utf-8",
@@ -38,14 +38,14 @@ class BuildToolConsistencyTests(unittest.TestCase):
     def test_build_backend_version_drift_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            self.write_fixture(root, "setuptools==75.8.0")
+            self.write_fixture(root, "setuptools==75.8.0", "setuptools==84.2.1")
             errors = validate_build_tools(root)
             self.assertTrue(any("must match the audited requirements-dev pin" in error for error in errors))
 
     def test_unpinned_build_backend_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            self.write_fixture(root, "setuptools>=78.1.1")
+            self.write_fixture(root, "setuptools>=78.1.1", "setuptools==84.2.1")
             errors = validate_build_tools(root)
             self.assertTrue(any("must be pinned with ==" in error for error in errors))
 
