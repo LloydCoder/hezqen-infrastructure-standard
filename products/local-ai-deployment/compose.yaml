@@ -11,7 +11,7 @@ services:
       - no-new-privileges:true
     pids_limit: 4096
     mem_limit: ${OLLAMA_MEMORY_LIMIT:-16g}
-    cpus: ${OLLAMA_CPUS:-8.0}
+    cpus: ${OLLAMA_CPUS:-2.0}
     volumes:
       - ollama_data:/root/.ollama
     tmpfs:
@@ -37,7 +37,7 @@ services:
       - no-new-privileges:true
     pids_limit: 1024
     mem_limit: ${WEBUI_MEMORY_LIMIT:-2g}
-    cpus: ${WEBUI_CPUS:-2.0}
+    cpus: ${WEBUI_CPUS:-1.0}
     depends_on:
       ollama:
         condition: service_healthy
