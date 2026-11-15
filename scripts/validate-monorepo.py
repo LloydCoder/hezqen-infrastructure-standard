@@ -40,6 +40,9 @@ def validate_product(path: Path, schema: dict[str, Any]) -> list[str]:
             image = str(service.get("image", ""))
             if not image or ":latest" in image or image.endswith(":latest"):
                 errors.append(f"{path.name}: service {service_name} must use an explicit non-latest image")
+            user = str(service.get("user", ""))
+            if not user or user in {"0", "0:0", "root"}:
+                errors.append(f"{path.name}: service {service_name} must declare a non-root runtime user")
             if service.get("privileged") is True:
                 errors.append(f"{path.name}: service {service_name} must not be privileged")
             if "ALL" not in service.get("cap_drop", []):
@@ -59,6 +62,18 @@ def validate_product(path: Path, schema: dict[str, Any]) -> list[str]:
             networks = compose.get("networks", {})
             if not ollama or not webui:
                 errors.append("local-ai-deployment: ollama and open-webui services are required")
+            if ollama.get("user") != "10002:10002":
+                errors.append("local-ai-deployment: Ollama must run as UID/GID 10002")
+            if webui.get("user") != "10001:10001":
+                errors.append("local-ai-deployment: Open WebUI must run as UID/GID 10001")
+            for service_name, service in (("ollama", ollama), ("open-webui", webui)):
+                build = service.get("build", {})
+                dockerfile = build.get("dockerfile")
+                if not dockerfile or not (path / dockerfile).is_file():
+                    errors.append(f"local-ai-deployment: {service_name} must use a checked-in derived Dockerfile")
+                base_image = str(build.get("args", {}).get("BASE_IMAGE", ""))
+                if "@sha256:" not in base_image:
+                    errors.append(f"local-ai-deployment: {service_name} base image must be digest-pinned")
             if ollama.get("ports"):
                 errors.append("local-ai-deployment: Ollama API must not publish a host port")
             ports = webui.get("ports", [])
