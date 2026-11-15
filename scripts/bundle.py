@@ -19,7 +19,7 @@ PRODUCTS = (
     "multigpu-optimization",
     "airgapped-rag",
 )
-VERSION_RE = re.compile(r"^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$")
+VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
 
 
 def sha256_file(path: Path) -> str:
@@ -109,7 +109,7 @@ def build_bundle(root: Path, output_dir: Path, source_revision: str) -> dict[str
         "products": entries,
     }
     (output_dir / "bundle-manifest.json").write_text(
-        json.dumps(bundle_manifest, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+        json.dumps(bundle_manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     sbom = {
         "bomFormat": "CycloneDX",
@@ -126,14 +126,14 @@ def build_bundle(root: Path, output_dir: Path, source_revision: str) -> dict[str
         "components": components,
     }
     (output_dir / "sbom.cdx.json").write_text(
-        json.dumps(sbom, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+        json.dumps(sbom, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     checksum_files = sorted(
         path for path in output_dir.iterdir()
         if path.is_file() and path.name not in {"SHA256SUMS"}
     )
     (output_dir / "SHA256SUMS").write_text(
-        "".join(f"{sha256_file(path)}  {path.name}\\n" for path in checksum_files),
+        "".join(f"{sha256_file(path)}  {path.name}\n" for path in checksum_files),
         encoding="utf-8",
     )
     return bundle_manifest
