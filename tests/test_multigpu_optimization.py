@@ -9,6 +9,7 @@ PRODUCT=ROOT/"products"/"multigpu-optimization"
 sys.path.insert(0,str(PRODUCT/"src"))
 
 from hezqen_gpu_planner import HardwareProfile, ModelProfile, PlanningError, estimate  # noqa: E402
+from hezqen_gpu_planner.cli import main as cli_main  # noqa: E402
 
 
 def model():
