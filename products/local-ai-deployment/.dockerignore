@@ -1,0 +1,10 @@
+# Build contexts contain only the derived Dockerfiles; never send operator secrets.
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+backups/
+*.tar
+*.tar.gz
+*.tgz

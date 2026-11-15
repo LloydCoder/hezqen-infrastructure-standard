@@ -61,6 +61,7 @@ class MonorepoProductTests(unittest.TestCase):
         dockerfile = (PRODUCT / "Dockerfile.open-webui").read_text(encoding="utf-8")
         self.assertEqual(service["user"], "10001:10001")
         self.assertEqual(service["build"]["dockerfile"], "Dockerfile.open-webui")
+        self.assertIn("adduser --uid 10001", dockerfile)
         self.assertIn("USER 10001:10001", dockerfile)
         self.assertIn("chown -R 10001:10001 /app /root", dockerfile)
 
@@ -70,8 +71,15 @@ class MonorepoProductTests(unittest.TestCase):
         dockerfile = (PRODUCT / "Dockerfile.ollama").read_text(encoding="utf-8")
         self.assertEqual(service["user"], "10002:10002")
         self.assertEqual(service["build"]["dockerfile"], "Dockerfile.ollama")
+        self.assertIn("adduser --uid 10002", dockerfile)
         self.assertIn("USER 10002:10002", dockerfile)
         self.assertIn("chown -R 10002:10002 /home/ollama", dockerfile)
+
+    def test_build_context_excludes_operator_secrets(self) -> None:
+        dockerignore = (PRODUCT / ".dockerignore").read_text(encoding="utf-8")
+        self.assertIn(".env", dockerignore)
+        self.assertIn(".env.*", dockerignore)
+        self.assertIn("backups/", dockerignore)
 
     def test_default_cpu_limits_are_portable_to_two_core_hosts(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))

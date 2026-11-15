@@ -35,6 +35,7 @@ jobs:
         run: |
           docker version
           docker compose version
+          docker buildx version
       - name: Create ephemeral test secret
         working-directory: products/local-ai-deployment
         run: |
@@ -55,8 +56,8 @@ jobs:
       - name: Print upstream base image digests
         working-directory: products/local-ai-deployment
         run: |
-          docker image inspect ollama/ollama:0.40.16 --format '{{index .RepoDigests 0}}'
-          docker image inspect ghcr.io/open-webui/open-webui:v0.13.2-slim --format '{{index .RepoDigests 0}}'
+          docker buildx imagetools inspect ollama/ollama:0.40.16 | awk '/^Digest:/ {print "OLLAMA_BASE_DIGEST=" $2}'
+          docker buildx imagetools inspect ghcr.io/open-webui/open-webui:v0.13.2-slim | awk '/^Digest:/ {print "OPEN_WEBUI_BASE_DIGEST=" $2}'
       - name: Start stack and wait for health
         working-directory: products/local-ai-deployment
         run: docker compose up -d --no-build --wait --wait-timeout 300
