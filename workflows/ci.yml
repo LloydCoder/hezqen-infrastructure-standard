@@ -1,0 +1,35 @@
+# TEMPLATE ONLY — copy into a product repository and adapt to its toolchain.
+name: Product CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Python for HIES metadata tooling
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        with:
+          python-version: "3.12.10"
+      - name: Install HIES validation dependencies
+        run: python -m pip install --disable-pip-version-check --only-binary=:all: -r requirements-hies.txt
+      - name: Validate product manifest
+        run: python scripts/hies/validate-manifest.py product-manifest.json
+      - name: Run product-specific checks
+        run: |
+          echo "REPLACE with locked install, format, lint, typecheck, tests, and build commands"
+          exit 1
