@@ -84,6 +84,8 @@ class PiiProtectionTests(unittest.TestCase):
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
         service = compose["services"]["pii-protection"]
         self.assertEqual(manifest["id"], PRODUCT.name)
+        dockerfile = (PRODUCT / "Dockerfile").read_text(encoding="utf-8")
+        self.assertIn("COPY --chown=10001:10001 src/ /app/", dockerfile)
         self.assertEqual(service["user"], "10001:10001")
         self.assertTrue(service["read_only"])
         self.assertEqual(service["cap_drop"], ["ALL"])
