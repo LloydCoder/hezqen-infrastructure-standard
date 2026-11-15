@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "local-ai-deployment",
+  "name": "HEZQEN Local AI Deployment Kit",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "A local-first container deployment for Ollama inference and Open WebUI with loopback-only host exposure, persistent storage, security hardening, and optional NVIDIA GPU support.",
+  "runtime": {
+    "networkRequired": true,
+    "supportedPlatforms": ["linux/amd64", "linux/arm64"],
+    "containerized": true
+  },
+  "repository": "https://github.com/LloydCoder/hezqen-infrastructure-standard",
+  "documentation": "https://github.com/LloydCoder/hezqen-infrastructure-standard/tree/main/products/local-ai-deployment",
+  "maintainers": [
+    {
+      "name": "Tinlance / HEZQEN",
+      "url": "https://tinlance.com"
+    }
+  ]
+}
