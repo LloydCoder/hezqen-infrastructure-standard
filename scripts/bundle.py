@@ -52,6 +52,18 @@ def _product_version(product_dir: Path) -> tuple[str, str]:
     return product_id, version
 
 
+def _add_reproducible_file(archive: tarfile.TarFile, path: Path, arcname: str) -> None:
+    info = archive.gettarinfo(str(path), arcname=arcname)
+    info.uid = 0
+    info.gid = 0
+    info.uname = ""
+    info.gname = ""
+    info.mtime = 0
+    info.pax_headers = {}
+    with path.open("rb") as source:
+        archive.addfile(info, source)
+
+
 def build_bundle(root: Path, output_dir: Path, source_revision: str) -> dict[str, Any]:
     if not re.fullmatch(r"[0-9a-f]{40,64}", source_revision):
         raise ValueError("source_revision must be a full lowercase Git commit SHA")
@@ -84,15 +96,13 @@ def build_bundle(root: Path, output_dir: Path, source_revision: str) -> dict[str
                         if path.name == ".env" or path.suffix in {".pyc", ".pyo"}:
                             continue
                         arcname = (PurePosixPath(product_id) / PurePosixPath(relative.as_posix())).as_posix()
-                        info = archive.gettarinfo(str(path), arcname=arcname)
-                        info.uid = 0
-                        info.gid = 0
-                        info.uname = ""
-                        info.gname = ""
-                        info.mtime = 0
-                        info.pax_headers = {}
-                        with path.open("rb") as source:
-                            archive.addfile(info, source)
+                        _add_reproducible_file(archive, path, arcname)
+                    product_license = product_dir / "LICENSE"
+                    if not product_license.is_file():
+                        root_license = root / "LICENSE"
+                        if not root_license.is_file():
+                            raise ValueError(f"applicable license text missing for {product_id}")
+                        _add_reproducible_file(archive, root_license, f"{product_id}/LICENSE")
         entries.append({
             "id": product_id,
             "version": version,
@@ -204,6 +214,9 @@ def verify_bundle(bundle_dir: Path) -> list[str]:
                         raise ValueError("archived product identity/version does not match bundle manifest")
                     if product_manifest.get("license") != item.get("license"):
                         raise ValueError("archived product license does not match bundle manifest")
+                    license_member = archive.extractfile(f"{item.get('id')}/LICENSE")
+                    if license_member is None or not license_member.read(1):
+                        raise ValueError("product license text missing or empty from archive")
             except (OSError, tarfile.TarError, ValueError, json.JSONDecodeError) as exc:
                 errors.append(f"cannot verify {archive_name}: {exc}")
         sums_path = root / "SHA256SUMS"
