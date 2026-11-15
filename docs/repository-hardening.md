@@ -25,6 +25,12 @@ This checklist applies to the HIES monorepo. Repository settings are administrat
 - Protect release environments with required reviewers if release publishing is enabled.
 - Use CODEOWNERS and product-scoped release permissions where available.
 
+## Automated Python dependency audit
+
+The HIES security workflow installs the pinned development requirements and runs `pip-audit --strict --requirement requirements-dev.txt`. This checks the resolved Python dependency graph in that requirements file against the configured public vulnerability database and fails on known advisories or incomplete dependency collection.
+
+Scope limitation: this is not a complete repository or product supply-chain scan. It does not inspect container base-image packages, Ollama/Open WebUI images, downloaded model artifacts, operating-system libraries, arbitrary Python source, or dependencies that are not represented in `requirements-dev.txt`. Product-specific container and model inventories still require separate image, license, provenance and runtime review. A clean pip-audit result is not a security certification.
+
 ## Verification record
 
 Record the date, reviewer, settings inspected, and any unavailable controls. Do not mark a control implemented solely because it is documented here.
