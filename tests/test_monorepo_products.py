@@ -55,6 +55,15 @@ class MonorepoProductTests(unittest.TestCase):
                 self.assertIn("healthcheck", service)
                 self.assertNotIn("/var/run/docker.sock", str(service.get("volumes", [])))
 
+    def test_open_webui_uses_a_non_root_build(self) -> None:
+        compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
+        service = compose["services"]["open-webui"]
+        dockerfile = (PRODUCT / "Dockerfile.open-webui").read_text(encoding="utf-8")
+        self.assertEqual(service["user"], "10001:10001")
+        self.assertEqual(service["build"]["dockerfile"], "Dockerfile.open-webui")
+        self.assertIn("USER 10001:10001", dockerfile)
+        self.assertIn("chown -R 10001:10001 /app /root", dockerfile)
+
     def test_default_cpu_limits_are_portable_to_two_core_hosts(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
         self.assertEqual(compose["services"]["ollama"]["cpus"], "${OLLAMA_CPUS:-2.0}")
@@ -84,6 +93,16 @@ class MonorepoProductTests(unittest.TestCase):
         devices = compose["services"]["ollama"]["deploy"]["resources"]["reservations"]["devices"]
         self.assertEqual(devices[0]["driver"], "nvidia")
         self.assertIn("gpu", devices[0]["capabilities"])
+
+    def test_runtime_workflow_builds_non_root_image_before_start(self) -> None:
+        workflow = yaml.safe_load(RUNTIME_WORKFLOW.read_text(encoding="utf-8"))
+        steps = workflow["jobs"]["cpu-runtime"]["steps"]
+        names = [step["name"] for step in steps]
+        self.assertLess(
+            names.index("Build non-root Open WebUI image"),
+            names.index("Start stack and wait for health"),
+        )
+        self.assertIn("Verify Open WebUI runs as non-root", names)
 
     def test_runtime_workflow_creates_secret_before_compose_validation(self) -> None:
         workflow = yaml.safe_load(RUNTIME_WORKFLOW.read_text(encoding="utf-8"))
