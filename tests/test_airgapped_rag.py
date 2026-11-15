@@ -45,12 +45,12 @@ class AirGappedRagTests(unittest.TestCase):
 
     def test_ingest_creates_collection_and_upserts_points(self):
         engine=RagEngine()
-        responses=[(200,{"embeddings":[[0.1,0.2],[0.3,0.4]]}),(404,{}),(200,{"result":{"status":"ok"}})]
+        responses=[(200,{"embeddings":[[0.1,0.2],[0.3,0.4]]}),(404,{}),(200,{"result":{"status":"ok"}}),(200,{"result":{"status":"completed"}})]
         with patch.object(engine,"_request_json",side_effect=responses) as request:
             result=engine.ingest([{"id":"manual-1","text":"a"*1500}])
         self.assertEqual(result["documents"],1)
         self.assertEqual(result["chunks"],2)
-        self.assertEqual(request.call_args_list[1].args[0],"PUT")
+        self.assertEqual(request.call_args_list[2].args[0],"PUT")
 
     def test_search_returns_source_payload(self):
         engine=RagEngine()
