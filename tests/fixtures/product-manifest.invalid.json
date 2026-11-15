@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "2.0",
+  "id": "Local AI Kit",
+  "name": "",
+  "version": "v1",
+  "license": "",
+  "description": "",
+  "runtime": {
+    "networkRequired": "false"
+  }
+}
