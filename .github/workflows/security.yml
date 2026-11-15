@@ -30,6 +30,6 @@ jobs:
           fi
           git checkout --detach FETCH_HEAD
       - name: Run hygiene regression tests
-        run: python3 -m unittest tests.test_repo_hygiene -v
+        run: python3 -m unittest discover -s tests -p 'test_repo_hygiene.py' -v
       - name: Scan repository
         run: python3 scripts/check-repo-hygiene.py .
