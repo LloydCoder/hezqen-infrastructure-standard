@@ -100,10 +100,10 @@ class MonorepoProductTests(unittest.TestCase):
         self.assertIn("sha256sum", backup)
         self.assertIn("sha256sum -c", restore)
         self.assertIn("--confirm", restore)
-        self.assertIn("tarfile", restore)
+        self.assertIn("tarfile.open", restore)
         self.assertIn("PurePosixPath", restore)
-        self.assertIn("tar --numeric-owner -xzf -", restore)
-        self.assertIn("tar --numeric-owner -czf -", backup)
+        self.assertIn("member.issym()", restore)
+        self.assertIn("member.islnk()", restore)
         self.assertIn("--network none", backup)
         self.assertIn("--network none", restore)
 
