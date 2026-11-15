@@ -17,7 +17,7 @@ validate_build_tools = VALIDATOR.validate_build_tools
 class BuildToolConsistencyTests(unittest.TestCase):
     def write_fixture(self, root: Path, requirement: str, audited_requirement: str = "setuptools==84.2.1") -> None:
         (root / "requirements-dev.txt").write_text(
-            f"pip-audit==2.10.1\n{requirement}\n",
+            f"pip-audit==2.10.1\n{audited_requirement}\n",
             encoding="utf-8",
         )
         product = root / "products" / "sample"
