@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "airgapped-rag",
+  "name": "HEZQEN Air-Gapped Local RAG Kit",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "An offline-first local retrieval-augmented generation stack using Ollama and Qdrant, with a reproducible image/model export and offline installation workflow.",
+  "runtime": {
+    "networkRequired": false,
+    "supportedPlatforms": [
+      "linux/amd64"
+    ],
+    "containerized": true
+  },
+  "repository": "https://github.com/LloydCoder/hezqen-infrastructure-standard",
+  "documentation": "https://github.com/LloydCoder/hezqen-infrastructure-standard/tree/main/products/airgapped-rag",
+  "maintainers": [
+    {
+      "name": "Tinlance / HEZQEN",
+      "url": "https://tinlance.com"
+    }
+  ]
+}
