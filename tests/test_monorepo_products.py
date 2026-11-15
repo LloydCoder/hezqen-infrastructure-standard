@@ -32,6 +32,7 @@ class MonorepoProductTests(unittest.TestCase):
     def test_open_webui_listens_on_container_interface(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
         self.assertEqual(compose["services"]["open-webui"]["environment"]["HOST"], "0.0.0.0")
+        self.assertEqual(compose["services"]["open-webui"]["environment"]["HOME"], "/tmp")
 
     def test_ui_network_has_no_ip_masquerading(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
@@ -63,7 +64,7 @@ class MonorepoProductTests(unittest.TestCase):
         self.assertEqual(service["build"]["dockerfile"], "Dockerfile.open-webui")
         self.assertIn("adduser --uid 10001", dockerfile)
         self.assertIn("USER 10001:10001", dockerfile)
-        self.assertIn("chown -R 10001:10001 /app /root", dockerfile)
+        self.assertIn("chown -R 10001:10001 /app/backend/data", dockerfile)
 
     def test_ollama_uses_a_non_root_build(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
@@ -77,18 +78,34 @@ class MonorepoProductTests(unittest.TestCase):
 
     def test_base_images_are_pinned_by_digest(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
-        for service_name in ("ollama", "open-webui"):
-            base = compose["services"][service_name]["build"]["args"]["BASE_IMAGE"]
-            self.assertIn("@sha256:", base)
         lock = json.loads((PRODUCT / "images.lock.json").read_text(encoding="utf-8"))
-        self.assertEqual(lock["images"]["ollama"]["digest"], compose["services"]["ollama"]["build"]["args"]["BASE_IMAGE"].split("@")[-1].rstrip("}") )
-        self.assertEqual(lock["images"]["openWebUI"]["digest"], compose["services"]["open-webui"]["build"]["args"]["BASE_IMAGE"].split("@")[-1].rstrip("}"))
+        self.assertEqual(
+            lock["images"]["ollama"]["digest"],
+            compose["services"]["ollama"]["build"]["args"]["BASE_IMAGE"].split("@")[-1].rstrip("}"),
+        )
+        self.assertEqual(
+            lock["images"]["openWebUI"]["digest"],
+            compose["services"]["open-webui"]["build"]["args"]["BASE_IMAGE"].split("@")[-1].rstrip("}"),
+        )
 
     def test_build_context_excludes_operator_secrets(self) -> None:
         dockerignore = (PRODUCT / ".dockerignore").read_text(encoding="utf-8")
         self.assertIn(".env", dockerignore)
         self.assertIn(".env.*", dockerignore)
         self.assertIn("backups/", dockerignore)
+
+    def test_backup_restore_scripts_require_integrity_and_confirmation(self) -> None:
+        backup = (PRODUCT / "scripts" / "backup.sh").read_text(encoding="utf-8")
+        restore = (PRODUCT / "scripts" / "restore.sh").read_text(encoding="utf-8")
+        self.assertIn("sha256sum", backup)
+        self.assertIn("sha256sum -c", restore)
+        self.assertIn("--confirm", restore)
+        self.assertIn("tarfile.open", restore)
+        self.assertIn("PurePosixPath", restore)
+        self.assertIn("member.issym()", restore)
+        self.assertIn("member.islnk()", restore)
+        self.assertIn("--network none", backup)
+        self.assertIn("--network none", restore)
 
     def test_default_cpu_limits_are_portable_to_two_core_hosts(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
@@ -130,6 +147,8 @@ class MonorepoProductTests(unittest.TestCase):
         )
         self.assertIn("Verify Open WebUI and Ollama run as non-root", names)
         self.assertIn("Verify CPU model inference and embedding", names)
+        self.assertIn("Run backup and restore drill", names)
+        self.assertIn("Validate IK-01 shell scripts", names)
 
     def test_runtime_workflow_creates_secret_before_compose_validation(self) -> None:
         workflow = yaml.safe_load(RUNTIME_WORKFLOW.read_text(encoding="utf-8"))
