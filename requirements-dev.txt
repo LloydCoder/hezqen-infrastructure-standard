@@ -1,2 +1,7 @@
-# CI schema-validation dependency. Pin exact version; transitive dependencies are resolved by pip.
+# Direct runtime dependencies for HIES schema validation.
+# Versions are pinned; CI installs wheels only to avoid unreviewed source builds.
+attrs==26.1.0
 jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+referencing==0.37.0
+rpds-py==2026.9.1
