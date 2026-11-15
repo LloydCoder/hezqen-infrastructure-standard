@@ -33,12 +33,16 @@ class MonorepoProductTests(unittest.TestCase):
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
         self.assertEqual(compose["services"]["open-webui"]["environment"]["HOST"], "0.0.0.0")
 
-    def test_ui_has_no_egress_network(self) -> None:
+    def test_ui_network_has_no_ip_masquerading(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
         networks = compose["networks"]
         services = compose["services"]
         self.assertTrue(networks["inference"]["internal"])
-        self.assertEqual(services["open-webui"]["networks"], ["inference"])
+        self.assertEqual(
+            networks["ui-ingress"]["driver_opts"]["com.docker.network.bridge.enable_ip_masquerade"],
+            "false",
+        )
+        self.assertEqual(services["open-webui"]["networks"], ["ui-ingress", "inference"])
         self.assertEqual(set(services["ollama"]["networks"]), {"inference", "model-egress"})
 
     def test_services_have_container_hardening(self) -> None:

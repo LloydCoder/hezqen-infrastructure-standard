@@ -68,8 +68,10 @@ def validate_product(path: Path, schema: dict[str, Any]) -> list[str]:
                 errors.append("local-ai-deployment: Open WebUI must wait for healthy Ollama")
             if networks.get("inference", {}).get("internal") is not True:
                 errors.append("local-ai-deployment: inference network must be internal-only")
-            if webui.get("networks") != ["inference"]:
-                errors.append("local-ai-deployment: Open WebUI must not attach to an egress network")
+            if webui.get("networks") != ["ui-ingress", "inference"]:
+                errors.append("local-ai-deployment: Open WebUI must attach only to UI ingress and internal inference networks")
+            if networks.get("ui-ingress", {}).get("driver_opts", {}).get("com.docker.network.bridge.enable_ip_masquerade") != "false":
+                errors.append("local-ai-deployment: UI ingress network must disable IP masquerading")
             if set(ollama.get("networks", [])) != {"inference", "model-egress"}:
                 errors.append("local-ai-deployment: Ollama must attach to inference and model-egress networks")
     except (OSError, json.JSONDecodeError, yaml.YAMLError, TypeError, AttributeError, ValueError) as exc:

@@ -1,14 +1,14 @@
 # HEZQEN Local AI Deployment Kit (IK-01)
 
-A hardened, local-first inference workspace using Ollama for model serving and the slim Open WebUI image for the operator interface. The default interface is bound to loopback; the Ollama API is not published to the host. Open WebUI has no direct egress in the default Compose network topology. Embeddings are delegated to Ollama so the UI does not need direct access to external model registries at runtime.
+A hardened, local-first inference workspace using Ollama for model serving and the slim Open WebUI image for the operator interface. The default UI is published only on host loopback; the Ollama API is not published. Open WebUI reaches Ollama over a private inference network and uses a dedicated no-masquerade bridge for loopback ingress, without joining Ollama's egress network.
 
 > **Status: engineering preview.** Static CI and a CPU runtime smoke test are implemented for Linux/amd64. A production release still requires non-root container execution or a formally approved exception, immutable image-digest locking, backup/restore drill, SBOM/provenance generation, and security review of the exact upstream images. NVIDIA GPU runtime is not yet verified.
 
 ## What is included
 
 - Docker Compose deployment with pinned upstream version tags (never `latest`).
-- Ollama model server on a private inference network plus a separate egress network; no host-published API port.
-- Open WebUI on the internal-only inference network and bound to `127.0.0.1:3000` by default.
+- Ollama on a private inference network plus a separate egress network for model pulls; no host-published API port.
+- Open WebUI on the private inference network and a dedicated no-masquerade UI bridge, published to `127.0.0.1:3000` by default.
 - Slim Open WebUI image with embeddings routed to Ollama.
 - Explicit no-tracking environment settings for Open WebUI.
 - Persistent named volumes for model and application data.
@@ -65,8 +65,9 @@ The NVIDIA override grants access to GPU devices only to the Ollama service. The
 
 - Default host exposure is loopback only.
 - Ollama is reachable by Open WebUI over the internal Compose network, not via a published host port.
-- Open WebUI is attached only to an internal Docker network; only Ollama has an egress-capable network for model pulls.
+- Open WebUI is attached to the internal inference network and a dedicated bridge with IP masquerading disabled. It is not attached to the model-egress network.
 - Open WebUI uses Ollama for embeddings; the slim image avoids bundling the standard local embedding/speech model stack.
+- The runtime smoke workflow verifies that the UI cannot establish direct Internet egress. Host firewall and Docker daemon policy remain part of the trust boundary.
 - The stack is not an Internet-facing multi-tenant service.
 - Both upstream containers run as UID/GID 0 by default. Capabilities are dropped and root filesystems are read-only, but this is not equivalent to non-root execution; stable release is blocked until this is addressed.
 - The Docker daemon remains a privileged host control plane; membership in the Docker group is effectively root-equivalent.

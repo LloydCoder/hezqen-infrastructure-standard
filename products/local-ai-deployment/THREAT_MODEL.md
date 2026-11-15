@@ -14,19 +14,20 @@ This model covers the default single-host deployment of Ollama and Open WebUI us
 ## Trust boundaries
 
 1. Operator workstation to loopback-published Open WebUI.
-2. Open WebUI container to Ollama over the internal-only Compose network.
-3. Ollama container to the model-egress network for model downloads.
-4. Containers to the host through Docker Engine, mounted volumes, and optional GPU devices.
-5. Host to external registries/model sources during image and model downloads.
+2. Open WebUI container to Ollama over the internal-only inference network.
+3. Open WebUI host ingress through a dedicated bridge network with IP masquerading disabled.
+4. Ollama container to the model-egress network for model downloads.
+5. Containers to the host through Docker Engine, mounted volumes, and optional GPU devices.
+6. Host to external registries/model sources during image and model downloads.
 
 ## Threats and controls
 
 | Threat | Control | Residual risk |
 |---|---|---|
 | Remote exposure of inference API | Ollama has no published host port | Docker network/host compromise remains in scope |
-| Accidental public UI exposure | Loopback bind default; remote access requires deliberate operator change | Misconfigured bind/proxy/firewall can expose service |
+| Accidental public UI exposure | Loopback bind default; dedicated ingress bridge defaults to loopback | Misconfigured bind/proxy/firewall can expose service |
 | Unauthorized UI access | Login enabled, public signup disabled, unique secret required | Local account lifecycle and host access remain operator responsibilities |
-| UI container data exfiltration | Open WebUI is attached only to an internal Docker network; explicit no-tracking settings | Host compromise, browser-side exposure, or future config changes remain possible |
+| UI container data exfiltration | UI ingress bridge disables IP masquerading; UI is not attached to model-egress; runtime egress probe | Host routing/firewall changes or alternate interfaces can alter the result |
 | Model server egress | Only Ollama is attached to the model-egress network | Egress is not allowlisted by this Compose file; enforce policy at host/network layer |
 | Container privilege escalation | Drop capabilities, no-new-privileges, read-only root FS, PID/resource limits | Both upstream images default to UID/GID 0; Docker daemon is privileged |
 | Data loss | Named persistent volumes and documented backup/restore | Backups can be incomplete or untested |
@@ -38,7 +39,7 @@ This model covers the default single-host deployment of Ollama and Open WebUI us
 - The host OS, Docker Engine, operator account, and firewall are trusted and patched.
 - Anyone with Docker daemon access is effectively privileged on the host.
 - Model download requires outbound connectivity. The Ollama service has an egress-capable network; this kit does not implement a complete registry/model-source allowlist.
-- Open WebUI has no direct container egress in the default topology. Verify this with the runtime smoke workflow.
+- Open WebUI is attached to the internal inference network and a separate bridge whose IP masquerading is disabled. The runtime smoke workflow tests direct outbound TCP connectivity from the UI container. This is not a substitute for host firewall policy.
 - The upstream Ollama and Open WebUI images run as UID/GID 0 by default. Capabilities are dropped, but non-root execution is not claimed. A reviewed non-root image build or a formally approved time-bounded exception is required before stable production release.
 - Do not expose the UI directly to the public Internet. Use a private VPN or an authenticated reverse proxy with TLS and network controls.
 - This kit does not guarantee privacy, regulatory compliance, or safe model outputs.

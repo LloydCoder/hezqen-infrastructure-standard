@@ -14,11 +14,18 @@
 
 The slim Open WebUI variant is used with Ollama as the embedding engine. Pull the configured `nomic-embed-text` model before enabling document retrieval. These are explicit version tags, not immutable digests. Before a production release, resolve the exact manifest digests for the target architecture, commit a digest lock, record upstream release references, and run the supported-platform matrix. Version tags can be moved by registry publishers.
 
+## Network design
+
+- Open WebUI attaches to the private inference network and a dedicated UI-ingress bridge with IP masquerading disabled.
+- The UI host port is explicitly bound to loopback by default.
+- Ollama attaches to the private inference network and a separate egress-capable model-download network.
+- The runtime smoke workflow verifies host port publication, UI-to-Ollama connectivity, and lack of direct Internet egress from Open WebUI.
+
 ## Evidence status
 
 - Manifest schema: validated in repository CI.
 - Compose YAML and security contract: validated statically in repository CI.
-- Linux/amd64 CPU container startup, health, loopback binding, internal service connectivity, and UI egress isolation: exercised by the IK-01 runtime smoke workflow.
+- Linux/amd64 CPU container startup, health, loopback binding, internal service connectivity, and UI egress isolation: exercised by the IK-01 runtime smoke workflow when green on the release candidate commit.
 - Model inference quality/performance: not yet evidenced by the repository's CI.
 - NVIDIA runtime/GPU inference: not yet evidenced.
 - ARM64 runtime: not declared supported.

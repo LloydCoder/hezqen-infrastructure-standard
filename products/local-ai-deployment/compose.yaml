@@ -62,6 +62,7 @@ services:
       - /tmp:rw,noexec,nosuid,size=512m
       - /root/.cache:rw,noexec,nosuid,size=256m
     networks:
+      - ui-ingress
       - inference
     healthcheck:
       test:
@@ -79,6 +80,11 @@ networks:
     internal: true
   model-egress:
     driver: bridge
+  ui-ingress:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
 
 volumes:
   ollama_data:
