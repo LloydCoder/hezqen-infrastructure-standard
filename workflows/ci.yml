@@ -26,7 +26,7 @@ jobs:
         with:
           python-version: "3.12.10"
       - name: Install HIES validation dependencies
-        run: python -m pip install --disable-pip-version-check --only-binary=:all: -r requirements-hies.txt
+        run: "python -m pip install --disable-pip-version-check --only-binary=:all: -r requirements-hies.txt"
       - name: Validate product manifest
         run: python scripts/hies/validate-manifest.py product-manifest.json
       - name: Run product-specific checks
