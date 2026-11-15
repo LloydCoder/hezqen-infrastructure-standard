@@ -77,6 +77,10 @@ class AirGappedRagTests(unittest.TestCase):
         self.assertFalse(services["qdrant"].get("ports"))
         self.assertTrue(services["rag-api"]["ports"][0].startswith("${RAG_BIND_ADDRESS:-127.0.0.1}:"))
         self.assertEqual(compose["networks"]["rag-backend"]["driver_opts"]["com.docker.network.bridge.enable_ip_masquerade"],"false")
+        installer=(PRODUCT/"scripts"/"install-offline.sh").read_text(encoding="utf-8")
+        self.assertIn("docker load -i images.tar",installer)
+        self.assertIn("--pull never",installer)
+        self.assertNotIn("docker pull",installer)
 
 
 if __name__=="__main__":

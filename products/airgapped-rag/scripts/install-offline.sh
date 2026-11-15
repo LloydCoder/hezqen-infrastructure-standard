@@ -10,6 +10,7 @@ cd "$BUNDLE_DIR"
   exit 1
 }
 sha256sum --check --strict SHA256SUMS
+python3 -c 'import json; m=json.load(open("manifest.json", encoding="utf-8")); assert m.get("product") == "airgapped-rag" and m.get("productVersion") == "0.1.0", "offline bundle identity/version mismatch"'
 
 PROJECT_NAME="hezqen-airgapped-rag"
 OLLAMA_VOLUME="${PROJECT_NAME}_ollama_data"
@@ -17,6 +18,10 @@ QDRANT_STORAGE_VOLUME="${PROJECT_NAME}_qdrant_storage"
 QDRANT_SNAPSHOT_VOLUME="${PROJECT_NAME}_qdrant_snapshots"
 OLLAMA_IMAGE="$(python3 -c 'import json; print(json.load(open("manifest.json"))["images"]["ollama"])')"
 QDRANT_IMAGE="$(python3 -c 'import json; print(json.load(open("manifest.json"))["images"]["qdrant"])')"
+RAG_API_IMAGE="$(python3 -c 'import json; print(json.load(open("manifest.json"))["images"]["ragApi"])')"
+RAG_EMBED_MODEL="$(python3 -c 'import json; print(json.load(open("manifest.json"))["embeddingModel"])')"
+RAG_CHAT_MODEL="$(python3 -c 'import json; print(json.load(open("manifest.json"))["chatModel"])')"
+export OLLAMA_IMAGE QDRANT_IMAGE RAG_API_IMAGE RAG_EMBED_MODEL RAG_CHAT_MODEL
 
 docker load -i images.tar
 docker volume create "$OLLAMA_VOLUME" >/dev/null
@@ -38,4 +43,9 @@ docker run --rm --network none --user 0:0 \
 if [[ ! -f .env ]]; then cp .env.example .env; chmod 600 .env; fi
 export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
 docker compose up -d --pull never --wait --wait-timeout 180
+MODELS="$(docker compose exec -T ollama ollama list)"
+while IFS= read -r model; do
+  [[ -n "$model" ]] || continue
+  grep -F "$model" <<<"$MODELS" >/dev/null || { echo "Required offline model missing: $model" >&2; exit 1; }
+done < <(python3 -c 'import json; print("\\n".join(json.load(open("manifest.json"))["models"]))')
 echo "Offline RAG stack installed. API: http://127.0.0.1:8090"
