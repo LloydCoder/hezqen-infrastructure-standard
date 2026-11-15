@@ -1,0 +1,37 @@
+name: hezqen-pii-protection
+
+services:
+  pii-protection:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${PII_IMAGE:-hezqen/pii-protection:0.1.0}
+    user: "10001:10001"
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8080
+      MAX_BODY_BYTES: ${MAX_BODY_BYTES:-1048576}
+      PII_ACTION: ${PII_ACTION:-redact}
+    ports:
+      - "${PII_BIND_ADDRESS:-127.0.0.1}:${PII_PORT:-8081}:8080"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,uid=10001,gid=10001,mode=0700
+    networks: [pii]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+networks:
+  pii:
+    internal: true
