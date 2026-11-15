@@ -27,7 +27,7 @@ class RagEngineTests(unittest.TestCase):
             validate_documents([{"text": "content"}])
 
     def test_collection_name_is_validated(self):
-        with patch.dict("os.environ", {"RAG_COLLECTION": "../escape"}):
+        with patch("hezqen_rag.engine.COLLECTION", "../escape"):
             with self.assertRaisesRegex(ValueError, "collection name"):
                 RagEngine()
 
