@@ -1,0 +1,14 @@
+{
+  "productVersion": "0.1.0",
+  "testedAt": "2026-11-15T10:00:00Z",
+  "environment": {
+    "os": "Ubuntu 24.04",
+    "architecture": "x86_64",
+    "runtime": "Docker Engine 27"
+  },
+  "result": "passed",
+  "evidence": [
+    "https://example.com/evidence/ci-run-123"
+  ],
+  "limitations": []
+}
