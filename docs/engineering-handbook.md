@@ -2,9 +2,9 @@
 
 ## 1. Purpose
 
-The HEZQEN Infrastructure Engineering Standard (HIES) is the shared engineering contract for the four HEZQEN Infrastructure Kits and the bundle distribution process. It provides standards, templates, schemas, and CI building blocks.
+The HEZQEN Infrastructure Engineering Standard (HIES) is the shared engineering contract and monorepo foundation for four independently versioned HEZQEN Infrastructure Kits and their aggregate bundle. It provides standards, schemas, templates, and CI/release tooling.
 
-HIES is a standards repository, not a shared runtime dependency. Product repositories MUST remain buildable and installable when this repository is unavailable.
+HIES is not a runtime service. Product workspaces live in this repository but must remain independently buildable and installable from a reviewed source commit. Product installations must not fetch HIES or another product workspace at runtime.
 
 ## 2. Normative language
 
@@ -12,10 +12,10 @@ The terms MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are normative. A SHOULD de
 
 ## 3. Architecture principles
 
-1. **Independent products:** Each kit owns its code, release, changelog, tests, and support lifecycle.
-2. **Shared standards, not runtime coupling:** Copy or vendor the required pinned standard assets into a product release; do not fetch HIES at runtime.
+1. **Monorepo, independent products:** Each kit owns its version, source/configuration, changelog, tests, release artifacts, and support lifecycle.
+2. **Shared standards, no runtime coupling:** Products may consume shared schemas and tooling at build time from an exact commit; runtime/install must not fetch HIES.
 3. **Provider neutrality:** Avoid coupling product runtime behavior to a single cloud, payment, telemetry, or model provider.
-4. **Local-first operation:** Core runtime functions MUST NOT require HEZQEN accounts, telemetry, or cloud APIs.
+4. **Local-first operation:** Core runtime functions MUST NOT require HEZQEN accounts, telemetry, or cloud APIs unless explicitly stated in the product manifest.
 5. **Explicit network boundaries:** Document every listening port and outbound dependency.
 6. **Reproducibility:** Record source revision, dependency versions, image digests, model revisions, hardware, and benchmark conditions as applicable.
 7. **No silent upgrades:** Production profiles MUST pin versions and require operator action for upgrades.
@@ -23,10 +23,10 @@ The terms MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are normative. A SHOULD de
 9. **Safe failure:** Controls protecting sensitive data MUST fail closed where failure could disclose data.
 10. **Data minimization:** Telemetry is disabled by default and MUST NOT contain prompts, documents, embeddings, secrets, or personal data.
 
-## 4. Product repository obligations
+## 4. Product workspace obligations
 
-Every product repository MUST maintain:
-- a product manifest and supported compatibility matrix;
+Every `products/<product-id>/` workspace MUST maintain:
+- a product manifest, independent semantic version, and compatibility record;
 - a threat model and documented trust boundaries;
 - installation, upgrade, rollback, backup, restore, and uninstall instructions;
 - security reporting and support policies;
