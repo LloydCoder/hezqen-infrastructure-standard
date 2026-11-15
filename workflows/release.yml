@@ -1,10 +1,10 @@
-# TEMPLATE ONLY — do not enable until release signing, provenance, and registry settings are configured.
+# TEMPLATE ONLY — do not enable until product-specific release building, signing, provenance, and registry settings are configured.
 name: Product Release
 
 on:
   push:
     tags:
-      - "v*"
+      - "ik*-v*"
 
 permissions:
   contents: read
@@ -22,20 +22,28 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - name: Checkout exact release tag
+      - name: Checkout exact product release tag
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-      - name: Verify tag points to protected release commit
+      - name: Resolve product workspace from tag
+        id: product
+        shell: bash
         run: |
-          test "${GITHUB_REF_TYPE}" = "tag"
-          git verify-tag "${GITHUB_REF_NAME}" || {
-            echo "A signed annotated tag is required; configure trusted signing keys."
-            exit 1
-          }
-      - name: Build and test release artifact
+          case "${GITHUB_REF_NAME}" in
+            ik01-v*) echo "path=products/local-ai-deployment" >> "$GITHUB_OUTPUT" ;;
+            ik02-v*) echo "path=products/pii-protection" >> "$GITHUB_OUTPUT" ;;
+            ik03-v*) echo "path=products/multigpu-optimization" >> "$GITHUB_OUTPUT" ;;
+            ik04-v*) echo "path=products/airgapped-rag" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unsupported product tag: ${GITHUB_REF_NAME}" >&2; exit 1 ;;
+          esac
+      - name: Verify selected product manifest and source
         run: |
-          echo "REPLACE with deterministic product build and acceptance tests"
+          test -s "${{ steps.product.outputs.path }}/product-manifest.json"
+          python scripts/validate-manifest.py "${{ steps.product.outputs.path }}/product-manifest.json"
+      - name: Build and test selected product artifact
+        run: |
+          echo "REPLACE with deterministic product-specific build and acceptance tests"
           exit 1
       - name: Generate SBOM, checksums, and release manifest
         run: |

@@ -1,6 +1,6 @@
 # Repository Hardening Checklist
 
-This checklist applies to HIES and each product repository. Repository settings are administrative controls and must be verified in GitHub settings; workflow files alone cannot enforce all of them.
+This checklist applies to the HIES monorepo. Repository settings are administrative controls and must be verified in GitHub settings; workflow files alone cannot enforce all of them.
 
 ## Branch protection for main
 
@@ -8,7 +8,7 @@ This checklist applies to HIES and each product repository. Repository settings 
 - Require at least one approving review; dismiss stale approvals after new commits.
 - Require approval of the most recent reviewable push where available.
 - Require conversation resolution.
-- Require status checks: `Validate schemas and manifest tooling` and `Scan tracked working tree for obvious credential patterns` for HIES.
+- Require status checks: `Validate shared contracts and product workspaces` and `Scan tracked working tree for obvious credential patterns`.
 - Require branches to be up to date before merging.
 - Block force pushes and branch deletion.
 - Apply rules to administrators where operationally appropriate.
@@ -23,6 +23,7 @@ This checklist applies to HIES and each product repository. Repository settings 
 - Set the default workflow token permission to read-only.
 - Disable unnecessary GitHub Pages, package publishing, and deploy environments.
 - Protect release environments with required reviewers if release publishing is enabled.
+- Use CODEOWNERS and product-scoped release permissions where available.
 
 ## Verification record
 
