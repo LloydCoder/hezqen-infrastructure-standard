@@ -4,7 +4,6 @@ from __future__ import annotations
 import math
 import shlex
 from dataclasses import asdict, dataclass
-from typing import Callable
 
 GIB = 1024**3
 WEIGHT_BYTES = {"fp32": 4.0, "fp16": 2.0, "bf16": 2.0, "fp8": 1.0, "int8": 1.0, "int4": 0.5}
@@ -35,6 +34,7 @@ class HardwareProfile:
     max_model_len: int
     max_num_seqs: int
     weight_dtype: str = "bf16"
+    quantization: str | None = None
     kv_cache_dtype: str = "fp16"
     gpu_memory_utilization: float = 0.90
     system_reserve_gib: float = 2.0
@@ -69,15 +69,24 @@ def estimate(model: ModelProfile, hw: HardwareProfile) -> Plan:
         "tensor_parallel_size": hw.tensor_parallel_size, "pipeline_parallel_size": hw.pipeline_parallel_size,
         "max_model_len": hw.max_model_len, "max_num_seqs": hw.max_num_seqs,
     }
+    if not model.name.strip():
+        raise PlanningError("model name must not be empty")
     for name, value in positive.items():
-        if value <= 0:
+        if not math.isfinite(float(value)) or value <= 0:
             raise PlanningError(f"{name} must be greater than zero")
     if hw.weight_dtype not in WEIGHT_BYTES:
         raise PlanningError(f"unsupported weight dtype: {hw.weight_dtype}")
+    if hw.weight_dtype in {"int4", "int8"} and not hw.quantization:
+        raise PlanningError("int4/int8 weights require an explicit vLLM quantization method")
+    if hw.quantization is not None and not hw.quantization.strip():
+        raise PlanningError("quantization method must not be empty")
     if hw.kv_cache_dtype not in KV_BYTES:
         raise PlanningError(f"unsupported KV cache dtype: {hw.kv_cache_dtype}")
     if not 0.1 <= hw.gpu_memory_utilization <= 0.99:
         raise PlanningError("gpu_memory_utilization must be between 0.10 and 0.99")
+    numeric_options = (hw.quantization_overhead_pct, hw.system_reserve_gib, hw.activation_reserve_gib, hw.gpu_memory_utilization)
+    if not all(math.isfinite(value) for value in numeric_options):
+        raise PlanningError("overhead, reserve, and utilization values must be finite")
     if hw.quantization_overhead_pct < 0 or hw.system_reserve_gib < 0 or hw.activation_reserve_gib < 0:
         raise PlanningError("overhead and reserve values cannot be negative")
     if hw.max_model_len > model.max_context_length:
@@ -114,11 +123,16 @@ def estimate(model: ModelProfile, hw: HardwareProfile) -> Plan:
     if not fits:
         warnings.append("Estimated per-GPU memory exceeds the configured utilization budget.")
     dtype = {"fp32":"float32","fp16":"half","bf16":"bfloat16","fp8":"auto","int8":"auto","int4":"auto"}[hw.weight_dtype]
-    command = ["vllm","serve",model.name,"--tensor-parallel-size",str(tp),"--pipeline-parallel-size",str(pp),"--max-model-len",str(hw.max_model_len),"--max-num-seqs",str(hw.max_num_seqs),"--gpu-memory-utilization",f"{hw.gpu_memory_utilization:.2f}","--dtype",dtype,"--kv-cache-dtype",hw.kv_cache_dtype]
+    kv_dtype = {"fp16":"float16","bf16":"bfloat16","fp8":"fp8","fp8_e5m2":"fp8_e5m2"}[hw.kv_cache_dtype]
+    command = ["vllm","serve",model.name,"--tensor-parallel-size",str(tp),"--pipeline-parallel-size",str(pp),"--max-model-len",str(hw.max_model_len),"--max-num-seqs",str(hw.max_num_seqs),"--gpu-memory-utilization",f"{hw.gpu_memory_utilization:.2f}","--dtype",dtype,"--kv-cache-dtype",kv_dtype]
+    if hw.quantization:
+        command.extend(["--quantization", hw.quantization])
+    if hw.nodes > 1:
+        command.extend(["--distributed-executor-backend", "ray"])
     return Plan(
         model={"name":model.name,"parameters_billion":model.parameters_billion,"layers":model.layers,"kv_heads":model.kv_heads,"head_dim":model.head_dim,"max_context_length":model.max_context_length},
         topology={"nodes":hw.nodes,"gpus_per_node":hw.gpus_per_node,"total_gpus_available":total_gpus,"tensor_parallel_size":tp,"pipeline_parallel_size":pp,"gpus_requested":used_gpus},
         memory={"vram_gib_per_gpu":hw.vram_gib_per_gpu,"gpu_memory_utilization":hw.gpu_memory_utilization,"budget_gib_per_gpu":round(budget,3),"weights_gib_per_gpu":round(weight_gib,3),"kv_cache_gib_per_gpu":round(kv_gib,3),"system_and_activation_reserve_gib":round(reserve,3),"estimated_total_gib_per_gpu":round(estimate_gib,3),"headroom_gib_per_gpu":round(headroom,3),"estimated_fit":fits},
-        vllm={"weight_dtype":hw.weight_dtype,"kv_cache_dtype":hw.kv_cache_dtype,"command":command,"shell_command":shlex.join(command)},
+        vllm={"weight_dtype":hw.weight_dtype,"quantization":hw.quantization,"kv_cache_dtype":hw.kv_cache_dtype,"command":command,"shell_command":shlex.join(command)},
         warnings=tuple(warnings),
     )

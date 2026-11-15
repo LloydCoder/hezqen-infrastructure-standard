@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-from .planner import HardwareProfile, ModelProfile, PlanningError, estimate
+from .planner import HardwareProfile, KV_BYTES, WEIGHT_BYTES, ModelProfile, PlanningError, estimate
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -24,6 +24,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--tp", type=int, required=True)
     p.add_argument("--pp", type=int, default=1)
     p.add_argument("--weight-dtype", choices=tuple(WEIGHT_BYTES), default="bf16")
+    p.add_argument("--quantization", help="vLLM quantization method, e.g. awq, gptq, fp8")
     p.add_argument("--kv-dtype", choices=tuple(KV_BYTES), default="fp16")
     p.add_argument("--gpu-memory-utilization", type=float, default=0.90)
     p.add_argument("--system-reserve-gib", type=float, default=2.0)
@@ -34,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     try:
         model = ModelProfile(args.model,args.params_b,args.layers,args.kv_heads,args.head_dim,args.model_context)
-        hw = HardwareProfile(args.gpus_per_node,args.nodes,args.vram_gib,args.tp,args.pp,args.context,args.concurrency,args.weight_dtype,args.kv_dtype,args.gpu_memory_utilization,args.system_reserve_gib,args.activation_reserve_gib,args.quantization_overhead_pct)
+        hw = HardwareProfile(gpus_per_node=args.gpus_per_node,nodes=args.nodes,vram_gib_per_gpu=args.vram_gib,tensor_parallel_size=args.tp,pipeline_parallel_size=args.pp,max_model_len=args.context,max_num_seqs=args.concurrency,weight_dtype=args.weight_dtype,quantization=args.quantization,kv_cache_dtype=args.kv_dtype,gpu_memory_utilization=args.gpu_memory_utilization,system_reserve_gib=args.system_reserve_gib,activation_reserve_gib=args.activation_reserve_gib,quantization_overhead_pct=args.quantization_overhead_pct)
         plan = estimate(model,hw)
     except PlanningError as exc:
         print(f"ERROR: {exc}",file=sys.stderr)

@@ -21,7 +21,7 @@ hezqen-gpu-plan \
   --params-b 70 --layers 80 --kv-heads 8 --head-dim 128 \
   --model-context 32768 --context 8192 --concurrency 8 \
   --gpus-per-node 4 --nodes 1 --vram-gib 24 \
-  --tp 4 --pp 1 --weight-dtype int4 --kv-dtype fp16 \
+  --tp 4 --pp 1 --weight-dtype int4 --quantization awq --kv-dtype fp16 \
   --output plan.json
 ```
 
@@ -40,7 +40,7 @@ The KV calculation uses a simplified sharding/replication model. Actual allocati
 
 - Prefer tensor parallelism within a node where high-bandwidth GPU interconnect is available.
 - Use pipeline parallelism across nodes when scaling beyond one node; inter-node communication and model partitioning affect throughput.
-- The planner rejects TP larger than GPUs per node and PP larger than node count. This is a conservative default topology, not every topology vLLM can support.
+- The planner rejects TP larger than GPUs per node and PP larger than node count. Multi-node plans select vLLM Ray as the distributed executor; Ray installation, cluster setup, identical environments, shared model paths, and high-speed interconnect remain operator responsibilities. This is a conservative default topology, not every topology vLLM can support.
 - Heterogeneous GPU fleets, MIG, NVLink/NVSwitch topology, PCIe placement, and NUMA effects require operator validation.
 
 The generated command targets the vLLM OpenAI-compatible serving interface. Review the output against the exact installed vLLM release's CLI. The planner does not install vLLM, download weights, or start a GPU workload.

@@ -9,7 +9,7 @@ def model():
 
 
 def hw(**overrides):
-    values={"gpus_per_node":4,"nodes":1,"vram_gib_per_gpu":24,"tensor_parallel_size":4,"pipeline_parallel_size":1,"max_model_len":8192,"max_num_seqs":8,"weight_dtype":"int4","kv_cache_dtype":"fp16"}
+    values={"gpus_per_node":4,"nodes":1,"vram_gib_per_gpu":24,"tensor_parallel_size":4,"pipeline_parallel_size":1,"max_model_len":8192,"max_num_seqs":8,"weight_dtype":"int4","quantization":"awq","kv_cache_dtype":"fp16"}
     values.update(overrides)
     return HardwareProfile(**values)
 
@@ -53,6 +53,14 @@ class PlannerTests(unittest.TestCase):
         plan=estimate(model(),hw(vram_gib_per_gpu=8))
         self.assertFalse(plan.memory["estimated_fit"])
         self.assertTrue(any("exceeds" in warning for warning in plan.warnings))
+
+    def test_int4_requires_explicit_quantization_method(self):
+        with self.assertRaisesRegex(PlanningError,"explicit vLLM quantization"):
+            estimate(model(),hw(quantization=None))
+
+    def test_multinode_command_selects_ray_executor(self):
+        plan=estimate(model(),hw(nodes=2,pipeline_parallel_size=2))
+        self.assertIn("--distributed-executor-backend ray",plan.vllm["shell_command"])
 
     def test_plan_contains_command(self):
         plan=estimate(model(),hw(weight_dtype="bf16"))
