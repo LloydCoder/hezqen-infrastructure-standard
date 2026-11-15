@@ -4,7 +4,7 @@ PRODUCT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 OLLAMA_IMAGE="${OLLAMA_IMAGE:-hezqen/ollama:0.40.16-nonroot}"
 OLLAMA_VOLUME="${OLLAMA_VOLUME:-hezqen-airgapped-rag_ollama_data}"
 CONTAINER="hezqen-ollama-model-prep-$$"
-MODELS="${HEZQEN_MODELS:-${RAG_EMBED_MODEL:-nomic-embed-text} ${RAG_CHAT_MODEL:-qwen2.5:0.5b}}"
+MODELS="${HEZQEN_MODELS:-} ${RAG_EMBED_MODEL:-nomic-embed-text} ${RAG_CHAT_MODEL:-qwen2.5:0.5b}"
 
 docker build --pull -f "$PRODUCT_DIR/../local-ai-deployment/Dockerfile.ollama" \
   --build-arg "BASE_IMAGE=ollama/ollama@sha256:910d0d8107b538fb0894e63163eb195de0cc7aefcbc666dc62d3b18f71124592" \

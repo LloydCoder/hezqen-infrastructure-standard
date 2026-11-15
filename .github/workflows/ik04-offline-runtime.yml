@@ -36,6 +36,9 @@ jobs:
     steps:
       - name: Check out exact source revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Validate offline shell scripts
+        working-directory: products/airgapped-rag
+        run: bash -n scripts/prepare-models.sh scripts/package-offline.sh scripts/install-offline.sh
       - name: Verify Docker and Compose
         run: |
           docker version
