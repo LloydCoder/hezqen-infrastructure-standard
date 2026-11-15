@@ -35,7 +35,7 @@ docker run --rm --network none --user 0:0 \
 cp compose.yaml .env.example README.md images.lock.json "$BUNDLE_DIR/"
 cp scripts/install-offline.sh "$BUNDLE_DIR/install.sh"
 
-python3 - "$BUNDLE_DIR" "$OLLAMA_IMAGE" "$QDRANT_IMAGE" "$RAG_API_IMAGE" "${HEZQEN_MODELS:-nomic-embed-text qwen2.5:0.5b}" <<'PY'
+python3 - "$BUNDLE_DIR" "$OLLAMA_IMAGE" "$QDRANT_IMAGE" "$RAG_API_IMAGE" "${HEZQEN_MODELS:-${RAG_EMBED_MODEL:-nomic-embed-text} ${RAG_CHAT_MODEL:-qwen2.5:0.5b}}" <<'PY'
 import json
 import sys
 from datetime import datetime, timezone
@@ -50,8 +50,8 @@ manifest = {
     "platform": "linux/amd64",
     "images": {"ollama": ollama, "qdrant": qdrant, "ragApi": rag_api},
     "models": models.split(),
-    "embeddingModel": __import__("os").getenv("HEZQEN_EMBED_MODEL", "nomic-embed-text"),
-    "chatModel": __import__("os").getenv("HEZQEN_CHAT_MODEL", "qwen2.5:0.5b"),
+    "embeddingModel": __import__("os").getenv("RAG_EMBED_MODEL", "nomic-embed-text"),
+    "chatModel": __import__("os").getenv("RAG_CHAT_MODEL", "qwen2.5:0.5b"),
     "artifacts": ["images.tar", "models.tar.gz", "compose.yaml", ".env.example", "images.lock.json", "install.sh", "README.md"],
 }
 (Path(directory) / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

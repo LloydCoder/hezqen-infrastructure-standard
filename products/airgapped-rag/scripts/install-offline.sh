@@ -23,6 +23,7 @@ RAG_EMBED_MODEL="$(python3 -c 'import json; print(json.load(open("manifest.json"
 RAG_CHAT_MODEL="$(python3 -c 'import json; print(json.load(open("manifest.json"))["chatModel"])')"
 export OLLAMA_IMAGE QDRANT_IMAGE RAG_API_IMAGE RAG_EMBED_MODEL RAG_CHAT_MODEL
 
+python3 -c 'import json; m=json.load(open("manifest.json")); l=json.load(open("images.lock.json")); assert m["images"]["qdrant"].split("@")[-1] == l["images"]["qdrant"]["digest"], "Qdrant image lock mismatch"'
 docker load -i images.tar
 docker volume create "$OLLAMA_VOLUME" >/dev/null
 docker volume create "$QDRANT_STORAGE_VOLUME" >/dev/null
@@ -42,6 +43,8 @@ docker run --rm --network none --user 0:0 \
 
 if [[ ! -f .env ]]; then cp .env.example .env; chmod 600 .env; fi
 export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
+docker compose config --quiet
+docker image inspect "$OLLAMA_IMAGE" "$QDRANT_IMAGE" "$RAG_API_IMAGE" >/dev/null
 docker compose up -d --pull never --wait --wait-timeout 180
 MODELS="$(docker compose exec -T ollama ollama list)"
 while IFS= read -r model; do
