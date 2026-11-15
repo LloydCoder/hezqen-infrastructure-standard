@@ -43,15 +43,16 @@ See [SECURITY.md](SECURITY.md) for reporting guidance and `standards/security/` 
 
 ## Local verification
 
-Requirements: Python 3.10+; no third-party Python dependencies are required for the current validator and unit tests.
+Requirements: Python 3.11+ and the pinned development dependencies in `requirements-dev.txt` for full JSON Schema validation.
 
 ```bash
+python3 -m pip install --only-binary=:all: -r requirements-dev.txt
 python3 -m unittest discover -s tests -v
-python3 -m json.tool schemas/product-manifest.schema.json >/dev/null
+python3 scripts/validate-schemas.py
 python3 scripts/validate-manifest.py path/to/product-manifest.json
 ```
 
-The manifest validator currently enforces the required HIES product-manifest fields and basic value constraints. JSON Schema files are the machine-readable contract; the Python validator is a dependency-free local preflight, not a complete JSON Schema implementation.
+The manifest validator uses the normative Draft 2020-12 JSON Schema, including declared formats. CI validates every schema and the checked-in positive/negative fixtures.
 
 ## Adoption
 
