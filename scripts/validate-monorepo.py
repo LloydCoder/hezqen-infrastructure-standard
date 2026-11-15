@@ -74,6 +74,9 @@ def validate_product(path: Path, schema: dict[str, Any]) -> list[str]:
                 base_image = str(build.get("args", {}).get("BASE_IMAGE", ""))
                 if "@sha256:" not in base_image:
                     errors.append(f"local-ai-deployment: {service_name} base image must be digest-pinned")
+            for script in ("scripts/backup.sh", "scripts/restore.sh"):
+                if not (path / script).is_file():
+                    errors.append(f"local-ai-deployment: required backup/restore script missing: {script}")
             if ollama.get("ports"):
                 errors.append("local-ai-deployment: Ollama API must not publish a host port")
             ports = webui.get("ports", [])

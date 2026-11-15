@@ -6,6 +6,7 @@ on:
       - "products/local-ai-deployment/**"
       - "scripts/validate-monorepo.py"
       - "tests/test_monorepo_products.py"
+      - "tests/backup-restore-smoke.sh"
       - ".github/workflows/ik01-runtime.yml"
   push:
     branches: [main]
@@ -13,6 +14,7 @@ on:
       - "products/local-ai-deployment/**"
       - "scripts/validate-monorepo.py"
       - "tests/test_monorepo_products.py"
+      - "tests/backup-restore-smoke.sh"
       - ".github/workflows/ik01-runtime.yml"
   workflow_dispatch:
 
@@ -36,6 +38,11 @@ jobs:
           docker version
           docker compose version
           docker buildx version
+      - name: Validate IK-01 shell scripts
+        run: |
+          bash -n products/local-ai-deployment/scripts/backup.sh
+          bash -n products/local-ai-deployment/scripts/restore.sh
+          bash -n tests/backup-restore-smoke.sh
       - name: Create ephemeral test secret
         working-directory: products/local-ai-deployment
         run: |
@@ -94,6 +101,8 @@ jobs:
           assert result.get("embeddings") and result["embeddings"][0], "embedding response was empty"
           print("Embedding API smoke passed")
           PY
+      - name: Run backup and restore drill
+        run: bash tests/backup-restore-smoke.sh
       - name: Verify UI-to-inference connectivity
         working-directory: products/local-ai-deployment
         run: |
