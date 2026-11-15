@@ -58,9 +58,9 @@ jobs:
       - name: Verify host port publication and UI health
         working-directory: products/local-ai-deployment
         run: |
-          PUBLISHED_UI="$(docker compose port open-webui 8080)"
-          echo "Open WebUI host mapping: $PUBLISHED_UI"
-          test "$PUBLISHED_UI" = "127.0.0.1:3000"
+          UI_ID="$(docker compose ps -q open-webui)"
+          docker inspect "$UI_ID" --format '{{json .HostConfig.PortBindings}}' | tee /tmp/hezqen-ui-port-bindings.json
+          jq -e '."8080/tcp"[0].HostIp == "127.0.0.1" and ."8080/tcp"[0].HostPort == "3000"' /tmp/hezqen-ui-port-bindings.json
           curl --fail --silent --show-error --retry 20 --retry-connrefused --retry-delay 1 --max-time 5 http://127.0.0.1:3000/health
           OLLAMA_ID="$(docker compose ps -q ollama)"
           PUBLISHED_OLLAMA="$(docker inspect "$OLLAMA_ID" --format '{{range $port, $bindings := .NetworkSettings.Ports}}{{range $bindings}}{{.HostIp}}:{{.HostPort}} {{end}}{{end}}')"

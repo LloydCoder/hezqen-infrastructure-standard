@@ -27,6 +27,7 @@ class MonorepoProductTests(unittest.TestCase):
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
         ports = compose["services"]["open-webui"]["ports"]
         self.assertEqual(ports, ["${WEBUI_BIND_ADDRESS:-127.0.0.1}:${WEBUI_PORT:-3000}:8080"])
+        self.assertEqual(compose["services"]["open-webui"]["expose"], ["8080"])
 
     def test_open_webui_listens_on_container_interface(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
