@@ -1,0 +1,35 @@
+name: HIES Security Hygiene
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hies-security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-hygiene:
+    name: Scan tracked working tree for obvious credential patterns
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact source revision
+        run: |
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            git fetch --no-tags --depth=1 origin "refs/pull/${{ github.event.pull_request.number }}/merge"
+          else
+            git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          fi
+          git checkout --detach FETCH_HEAD
+      - name: Run hygiene regression tests
+        run: python3 -m unittest tests.test_repo_hygiene -v
+      - name: Scan repository
+        run: python3 scripts/check-repo-hygiene.py .
