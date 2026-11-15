@@ -23,11 +23,15 @@ jobs:
         run: |
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            git fetch --no-tags --depth=1 origin "refs/pull/${{ github.event.pull_request.number }}/merge"
+          else
+            git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          fi
           git checkout --detach FETCH_HEAD
       - name: Verify Python runtime
         run: python3 --version
-      - name: Run unit tests
+      - name: Run unit and regression tests
         run: python3 -m unittest discover -s tests -v
       - name: Validate checked-in JSON documents
         run: |
@@ -43,6 +47,12 @@ jobs:
       - name: Validate mandatory standards are present
         run: |
           test -s schemas/product-manifest.schema.json
+          test -s schemas/compatibility.schema.json
+          test -s schemas/compatibility-matrix.schema.json
+          test -s schemas/benchmark.schema.json
+          test -s schemas/artifact-manifest.schema.json
           test -s standards/quality/testing-standard.md
           test -s standards/security/secure-container-baseline.md
           test -s standards/security/release-integrity.md
+      - name: Scan repository for obvious credential patterns
+        run: python3 scripts/check-repo-hygiene.py .
