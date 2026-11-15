@@ -91,6 +91,32 @@ def validate_product(path: Path, schema: dict[str, Any]) -> list[str]:
                 errors.append("local-ai-deployment: UI ingress network must disable IP masquerading")
             if set(ollama.get("networks", [])) != {"inference", "model-egress"}:
                 errors.append("local-ai-deployment: Ollama must attach to inference and model-egress networks")
+        if path.name == "airgapped-rag":
+            ollama, qdrant, api = services.get("ollama", {}), services.get("qdrant", {}), services.get("rag-api", {})
+            networks = compose.get("networks", {})
+            if not ollama or not qdrant or not api:
+                errors.append("airgapped-rag: ollama, qdrant, and rag-api services are required")
+            if ollama.get("ports") or qdrant.get("ports"):
+                errors.append("airgapped-rag: Ollama and Qdrant APIs must not publish host ports")
+            api_ports = api.get("ports", [])
+            if not api_ports or not all(str(p).startswith("${RAG_BIND_ADDRESS:-127.0.0.1}:") for p in api_ports):
+                errors.append("airgapped-rag: RAG API must bind to host loopback by default")
+            if networks.get("rag-backend", {}).get("driver_opts", {}).get("com.docker.network.bridge.enable_ip_masquerade") != "false":
+                errors.append("airgapped-rag: backend network must disable IP masquerading")
+            if "@sha256:" not in str(qdrant.get("image", "")):
+                errors.append("airgapped-rag: Qdrant image must be digest-pinned")
+            if any(service.get("pull_policy") != "never" for service in (ollama, qdrant, api)):
+                errors.append("airgapped-rag: every service must use pull_policy=never on the offline target")
+            for script in ("scripts/prepare-models.sh", "scripts/package-offline.sh", "scripts/install-offline.sh"):
+                if not (path / script).is_file():
+                    errors.append(f"airgapped-rag: required offline lifecycle script missing: {script}")
+            if not (path / "images.lock.json").is_file():
+                errors.append("airgapped-rag: images.lock.json is required")
+            if not (path / "Dockerfile.api").is_file() or "@sha256:" not in (path / "Dockerfile.api").read_text(encoding="utf-8"):
+                errors.append("airgapped-rag: API base image must be digest-pinned")
+            ollama_dockerfile = ROOT / "products" / "local-ai-deployment" / "Dockerfile.ollama"
+            if not ollama_dockerfile.is_file() or "@sha256:" not in ollama_dockerfile.read_text(encoding="utf-8"):
+                errors.append("airgapped-rag: shared Ollama base image must be digest-pinned")
     except (OSError, json.JSONDecodeError, yaml.YAMLError, TypeError, AttributeError, ValueError) as exc:
         errors.append(f"{path.name}: unable to validate product workspace: {exc}")
     return errors
