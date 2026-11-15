@@ -75,6 +75,15 @@ class RegexDetector:
                 value = match.group(0)
                 if item.validator is not None and not item.validator(value):
                     continue
+                if item.entity == "PHONE_NUMBER":
+                    digits = sum(character.isdigit() for character in value)
+                    left = text[max(0, match.start() - 3):match.start()]
+                    right = text[match.end():match.end() + 3]
+                    # Do not classify a substring of a longer card-like digit run as a phone.
+                    if not 7 <= digits <= 15:
+                        continue
+                    if re.search(r"[0-9][ .-]?$", left) or re.match(r"[ .-]?[0-9]", right):
+                        continue
                 found.append(Detection(item.entity, match.start(), match.end(), item.score, value))
         return found
 
