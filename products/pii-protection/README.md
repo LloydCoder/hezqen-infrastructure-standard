@@ -15,7 +15,7 @@ curl -sS http://127.0.0.1:8081/healthz
 curl -sS http://127.0.0.1:8081/v1/redact -H 'Content-Type: application/json' -d '{"text":"Contact a.person@example.com"}'
 ```
 
-The service binds to loopback by default. Do not expose it directly to the Internet. Put authentication, authorization, TLS, request limits, and audit policy at a trusted gateway before allowing other hosts to call it.
+The service binds to loopback by default on a dedicated Docker bridge with IP masquerading disabled. Do not expose it directly to the Internet. Put authentication, authorization, TLS, request limits, and audit policy at a trusted gateway before allowing other hosts to call it.
 
 ## Library use
 

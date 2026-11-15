@@ -91,7 +91,7 @@ class PiiProtectionTests(unittest.TestCase):
         self.assertEqual(service["cap_drop"], ["ALL"])
         self.assertIn("no-new-privileges:true", service["security_opt"])
         self.assertTrue(service["ports"][0].startswith("${PII_BIND_ADDRESS:-127.0.0.1}:"))
-        self.assertTrue(compose["networks"]["pii"]["internal"])
+        self.assertEqual(compose["networks"]["pii"]["driver_opts"]["com.docker.network.bridge.enable_ip_masquerade"], "false")
 
 
 if __name__ == "__main__":
