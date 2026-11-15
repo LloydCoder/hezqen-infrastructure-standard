@@ -58,7 +58,8 @@
       "type": "array",
       "items": {
         "type": "string",
-        "format": "uri"
+        "format": "uri",
+        "pattern": "^https?://[^\\\\s]+$"
       }
     },
     "limitations": {
