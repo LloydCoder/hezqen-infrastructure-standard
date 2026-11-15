@@ -10,9 +10,9 @@
 ## Upstream components
 
 - Ollama image tag default: `0.40.16`.
-- Open WebUI image tag default: `v0.13.2`.
+- Open WebUI image tag default: `v0.13.2-slim`.
 
-These are explicit version tags, not immutable digests. Before a production release, resolve the exact manifest digests for the target architecture, commit a digest lock, record upstream release references, and run the supported-platform matrix. Version tags can be moved by registry publishers.
+The slim Open WebUI variant is used with Ollama as the embedding engine. Pull the configured `nomic-embed-text` model before enabling document retrieval. These are explicit version tags, not immutable digests. Before a production release, resolve the exact manifest digests for the target architecture, commit a digest lock, record upstream release references, and run the supported-platform matrix. Version tags can be moved by registry publishers.
 
 ## Evidence status
 

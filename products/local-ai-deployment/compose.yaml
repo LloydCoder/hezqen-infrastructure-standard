@@ -28,7 +28,7 @@ services:
     stop_grace_period: 60s
 
   open-webui:
-    image: ${OPEN_WEBUI_IMAGE:-ghcr.io/open-webui/open-webui:v0.13.2}
+    image: ${OPEN_WEBUI_IMAGE:-ghcr.io/open-webui/open-webui:v0.13.2-slim}
     restart: unless-stopped
     read_only: true
     cap_drop:
@@ -43,6 +43,8 @@ services:
         condition: service_healthy
     environment:
       OLLAMA_BASE_URL: http://ollama:11434
+      RAG_EMBEDDING_ENGINE: ollama
+      RAG_EMBEDDING_MODEL: nomic-embed-text
       WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?Set WEBUI_SECRET_KEY in the local .env file}
       ENABLE_SIGNUP: "false"
       ENABLE_LOGIN_FORM: "true"

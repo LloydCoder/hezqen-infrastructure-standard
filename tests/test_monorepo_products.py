@@ -58,6 +58,12 @@ class MonorepoProductTests(unittest.TestCase):
         self.assertEqual(env["DO_NOT_TRACK"], "true")
         self.assertEqual(env["ANONYMIZED_TELEMETRY"], "false")
 
+    def test_embedding_model_is_routed_to_ollama(self) -> None:
+        compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
+        env = compose["services"]["open-webui"]["environment"]
+        self.assertEqual(env["RAG_EMBEDDING_ENGINE"], "ollama")
+        self.assertEqual(env["RAG_EMBEDDING_MODEL"], "nomic-embed-text")
+
     def test_nvidia_override_is_opt_in_and_scoped_to_ollama(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.nvidia.yaml").read_text(encoding="utf-8"))
         self.assertEqual(list(compose["services"]), ["ollama"])
