@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.error
 import urllib.request
 import uuid
@@ -76,6 +77,8 @@ class RagEngine:
         self.embed_model = EMBED_MODEL
         self.chat_model = CHAT_MODEL
         self.collection = COLLECTION
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.collection):
+            raise ValueError("collection name must contain only letters, numbers, underscore, or hyphen")
 
     @staticmethod
     def _request_json(method: str, url: str, payload: object | None = None, timeout: int = 90) -> tuple[int, dict[str, Any]]:

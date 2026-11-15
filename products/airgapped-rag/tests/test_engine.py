@@ -26,6 +26,11 @@ class RagEngineTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_documents([{"text": "content"}])
 
+    def test_collection_name_is_validated(self):
+        with patch.dict("os.environ", {"RAG_COLLECTION": "../escape"}):
+            with self.assertRaisesRegex(ValueError, "collection name"):
+                RagEngine()
+
     def test_embed_rejects_wrong_vector_count(self):
         engine = RagEngine()
         with patch.object(engine, "_request_json", return_value=(200, {"embeddings": []})):
@@ -40,7 +45,7 @@ class RagEngineTests(unittest.TestCase):
             (200, {"result": {"status": "ok"}}),
         ]
         with patch.object(engine, "_request_json", side_effect=responses) as request:
-            result = engine.ingest([{"id": "manual-1", "text": "first section " * 1000}])
+            result = engine.ingest([{"id": "manual-1", "text": "a" * 1500}])
         self.assertEqual(result["documents"], 1)
         self.assertGreater(result["chunks"], 1)
         self.assertEqual(request.call_args_list[1].args[0], "PUT")
