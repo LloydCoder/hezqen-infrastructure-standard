@@ -18,6 +18,7 @@ services:
       - /tmp:rw,noexec,nosuid,size=1g
     networks:
       - inference
+      - model-egress
     healthcheck:
       test: ["CMD", "ollama", "ps"]
       interval: 30s
@@ -45,20 +46,22 @@ services:
       WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?Set WEBUI_SECRET_KEY in the local .env file}
       ENABLE_SIGNUP: "false"
       ENABLE_LOGIN_FORM: "true"
+      SCARF_NO_ANALYTICS: "true"
+      DO_NOT_TRACK: "true"
+      ANONYMIZED_TELEMETRY: "false"
     ports:
       - "${WEBUI_BIND_ADDRESS:-127.0.0.1}:${WEBUI_PORT:-3000}:8080"
     volumes:
       - open_webui_data:/app/backend/data
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=512m
+      - /root/.cache:rw,noexec,nosuid,size=256m
     networks:
       - inference
     healthcheck:
       test:
-        - CMD
-        - python
-        - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"
+        - CMD-SHELL
+        - "curl --silent --fail http://localhost:8080/health | jq -ne 'input.status == true' || exit 1"
       interval: 30s
       timeout: 5s
       retries: 5
@@ -67,6 +70,9 @@ services:
 
 networks:
   inference:
+    driver: bridge
+    internal: true
+  model-egress:
     driver: bridge
 
 volumes:

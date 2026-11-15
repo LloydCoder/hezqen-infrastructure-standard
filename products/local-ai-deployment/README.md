@@ -1,14 +1,15 @@
 # HEZQEN Local AI Deployment Kit (IK-01)
 
-A hardened, local-first inference workspace using Ollama for model serving and Open WebUI for the operator interface. The default interface is bound to loopback; the Ollama API is not published to the host.
+A hardened, local-first inference workspace using Ollama for model serving and Open WebUI for the operator interface. The default interface is bound to loopback; the Ollama API is not published to the host. Open WebUI has no direct egress in the default Compose network topology.
 
-> **Status: engineering preview.** The compose contract and automated static checks are implemented. A production release still requires host-level runtime testing on supported CPU/GPU platforms, image-digest locking, SBOM/provenance generation, and security review of the exact upstream images.
+> **Status: engineering preview.** Static CI and a CPU runtime smoke test are implemented for Linux/amd64. A production release still requires non-root container execution or a formally approved exception, immutable image-digest locking, backup/restore drill, SBOM/provenance generation, and security review of the exact upstream images. NVIDIA GPU runtime is not yet verified.
 
 ## What is included
 
 - Docker Compose deployment with pinned upstream version tags (never `latest`).
-- Ollama model server on an internal Docker network; no host-published API port.
-- Open WebUI bound to `127.0.0.1:3000` by default.
+- Ollama model server on a private inference network plus a separate egress network; no host-published API port.
+- Open WebUI on the internal-only inference network and bound to `127.0.0.1:3000` by default.
+- Explicit no-tracking environment settings for Open WebUI.
 - Persistent named volumes for model and application data.
 - Health checks, startup dependency ordering, restart policy, resource limits, dropped Linux capabilities, no-new-privileges, and read-only container root filesystems with explicit writable mounts.
 - Optional NVIDIA GPU override.
@@ -16,7 +17,7 @@ A hardened, local-first inference workspace using Ollama for model serving and O
 
 ## Prerequisites
 
-- Linux host with Docker Engine and Docker Compose v2 plugin.
+- Linux x86_64 host with Docker Engine and Docker Compose v2 plugin.
 - At least 8 GB RAM for the stack; model requirements vary significantly. 16 GB+ RAM is a more practical starting point for small-to-medium quantized models.
 - Disk space for container images and model weights.
 - For NVIDIA acceleration: supported NVIDIA driver, NVIDIA Container Toolkit, and a Compose implementation supporting device reservations.
@@ -26,9 +27,8 @@ A hardened, local-first inference workspace using Ollama for model serving and O
 ```bash
 cd products/local-ai-deployment
 cp .env.example .env
-# Set a unique WEBUI_SECRET_KEY in .env before starting.
+# Generate a unique secret and paste it into WEBUI_SECRET_KEY in .env.
 python3 -c 'import secrets; print(secrets.token_urlsafe(48))'
-# Paste the generated value into .env; protect the file:
 chmod 600 .env
 docker compose config --quiet
 docker compose up -d
@@ -52,15 +52,17 @@ docker compose -f compose.yaml -f compose.nvidia.yaml config --quiet
 docker compose -f compose.yaml -f compose.nvidia.yaml up -d
 ```
 
-The NVIDIA override grants access to GPU devices only to the Ollama service. GPU access is a deliberate host-level privilege and must be reviewed for the target machine.
+The NVIDIA override grants access to GPU devices only to the Ollama service. The GPU runtime path is opt-in and has not yet passed a physical-device acceptance test.
 
 ## Security model
 
 - Default host exposure is loopback only.
-- Ollama is reachable by Open WebUI over the private Compose network, not via a published host port.
+- Ollama is reachable by Open WebUI over the internal Compose network, not via a published host port.
+- Open WebUI is attached only to an internal Docker network; only Ollama has an egress-capable network for model pulls.
 - The stack is not an Internet-facing multi-tenant service.
+- Both upstream containers run as UID/GID 0 by default. Capabilities are dropped and root filesystems are read-only, but this is not equivalent to non-root execution; stable release is blocked until this is addressed.
 - The Docker daemon remains a privileged host control plane; membership in the Docker group is effectively root-equivalent.
-- Model pulls require outbound network access. Restrict egress at the host/network layer to approved registries and model sources where feasible.
+- Restrict Ollama egress at the host/network layer to approved registries and model sources where feasible.
 - Keep `.env` owner-readable only. Never commit real secrets.
 - Do not mount the Docker socket, host root, or broad home directories.
 - Back up named volumes before upgrades and test restore procedures.
@@ -81,4 +83,4 @@ python3 scripts/validate-monorepo.py
 python3 -m unittest discover -s tests -v
 ```
 
-Static CI checks do not prove that the stack runs correctly on every host, that a GPU is detected, or that a model fits available VRAM.
+The automated runtime smoke test starts the exact CPU Compose stack, verifies health, checks the loopback binding and absence of an Ollama host port, and verifies that the UI can reach Ollama while lacking direct Internet egress. It does not test model inference, NVIDIA GPU operation, ARM64, multi-user load, or production hardening of the host.

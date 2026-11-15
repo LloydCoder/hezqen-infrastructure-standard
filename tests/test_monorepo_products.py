@@ -16,6 +16,7 @@ class MonorepoProductTests(unittest.TestCase):
         manifest = json.loads((PRODUCT / "product-manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["id"], PRODUCT.name)
         self.assertEqual(manifest["version"], "0.1.0")
+        self.assertEqual(manifest["runtime"]["supportedPlatforms"], ["linux/amd64"])
 
     def test_ollama_api_is_not_published_to_host(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
@@ -25,6 +26,14 @@ class MonorepoProductTests(unittest.TestCase):
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
         ports = compose["services"]["open-webui"]["ports"]
         self.assertEqual(ports, ["${WEBUI_BIND_ADDRESS:-127.0.0.1}:${WEBUI_PORT:-3000}:8080"])
+
+    def test_ui_has_no_egress_network(self) -> None:
+        compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
+        networks = compose["networks"]
+        services = compose["services"]
+        self.assertTrue(networks["inference"]["internal"])
+        self.assertEqual(services["open-webui"]["networks"], ["inference"])
+        self.assertEqual(set(services["ollama"]["networks"]), {"inference", "model-egress"})
 
     def test_services_have_container_hardening(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
@@ -40,6 +49,13 @@ class MonorepoProductTests(unittest.TestCase):
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
         dependency = compose["services"]["open-webui"]["depends_on"]["ollama"]
         self.assertEqual(dependency["condition"], "service_healthy")
+
+    def test_ui_tracking_flags_are_explicitly_disabled(self) -> None:
+        compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
+        env = compose["services"]["open-webui"]["environment"]
+        self.assertEqual(env["SCARF_NO_ANALYTICS"], "true")
+        self.assertEqual(env["DO_NOT_TRACK"], "true")
+        self.assertEqual(env["ANONYMIZED_TELEMETRY"], "false")
 
     def test_nvidia_override_is_opt_in_and_scoped_to_ollama(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.nvidia.yaml").read_text(encoding="utf-8"))
