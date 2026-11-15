@@ -1,0 +1,62 @@
+# HEZQEN Infrastructure Standard — Full Documentation Guide
+
+## Project identity
+
+HEZQEN Infrastructure Standard (HIES) is a shared engineering contract and monorepo foundation for four independently versioned infrastructure kits and an aggregate bundle. It provides standards, JSON Schemas, templates, validation scripts, tests, and repository workflows. It is not a runtime service and does not need to be fetched by installed products.
+
+## Repository architecture
+
+- standards/: normative architecture, security, quality, licensing, and operations requirements.
+- schemas/: JSON Schema contracts for product manifests, compatibility records, benchmarks, and artifact manifests.
+- scripts/: validators, release metadata tooling, repository hygiene checks, and checksum verification.
+- products/: independently versioned product workspaces.
+- templates/: reusable product documentation and operational templates.
+- tests/: regression tests for shared tooling and product contracts.
+- .github/workflows/: active repository CI, security, and product runtime workflows.
+- workflows/: copy-and-adapt workflow templates, not active workflows.
+- docs/: tutorials, how-to guides, explanations, references, and architecture decisions.
+- bundle/: aggregate bundle documentation and distribution conventions.
+
+## Products
+
+IK-01 Local AI Deployment Kit: local inference deployment using Ollama and Open WebUI. Its documented Linux/amd64 CPU runtime checks do not establish physical GPU acceptance or multi-tenant production readiness.
+
+IK-02 PII Protection Middleware Kit: deterministic PII detection, redaction, and policy middleware. Built-in recognizers are limited and are not comprehensive PII detection or a compliance certification.
+
+IK-03 Multi-GPU Optimization Kit: CPU-only model memory estimator and vLLM configuration planner. Estimates are simplified and require workload-specific benchmarking on actual hardware.
+
+IK-04 Air-Gapped RAG Kit: offline-first RAG stack using Ollama, Qdrant, and a Python API. The deployment is a single-host stack and model licenses and data-volume protection remain operator responsibilities.
+
+IK-05 is an aggregate bundle manifest/orchestration layer, not a fifth product source tree.
+
+## Development setup
+
+The repository declares Python 3.12 in .python-version. Install pinned shared validation dependencies with:
+
+~~~bash
+python -m pip install --only-binary=:all: -r requirements-dev.txt
+~~~
+
+Run tests and validators from the repository root:
+
+~~~bash
+python -m unittest discover -s tests -v
+python scripts/validate-schemas.py
+python scripts/validate-workflows.py
+python scripts/validate-monorepo.py
+python scripts/check-repo-hygiene.py .
+~~~
+
+For product-specific setup and runtime requirements, use the product README and its docs/OPERATIONS.md, docs/COMPATIBILITY.md, SECURITY.md, and THREAT_MODEL.md.
+
+## Normative authority
+
+The standards directory is normative. The engineering handbook explains general principles. Architecture decision records explain accepted structural choices. Product-specific documentation describes implementations. Do not treat a passing test, schema validation, or assurance mapping as certification or proof beyond the scope of the evidence.
+
+## Release model
+
+Products have independent semantic versions, changelogs, compatibility evidence, and release lifecycles. Releases should identify the monorepo source commit, HIES revision, SBOM, checksums, provenance, and immutable container image digests where applicable. The aggregate bundle references immutable product artifacts instead of duplicating product source.
+
+## Security
+
+Read SECURITY.md before reporting a vulnerability. Do not publish exploitable details in public issues. Product threat models and security policies govern product-specific deployment boundaries. The root hygiene scanner checks selected credential patterns in the current working tree and is not a full-history secret scanner.

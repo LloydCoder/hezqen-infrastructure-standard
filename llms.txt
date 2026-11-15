@@ -1,0 +1,37 @@
+# HEZQEN Infrastructure Standard
+
+> Provider-neutral engineering standards, schemas, templates, validation tooling, and independently versioned infrastructure kits for reproducible AI and infrastructure products.
+
+## Start here
+
+- [Repository overview](README.md): purpose, product portfolio, setup, and validation.
+- [Documentation index](docs/README.md): tutorials, how-to guides, explanations, and references.
+- [Engineering handbook](docs/engineering-handbook.md): normative language and engineering principles.
+- [Product registry](products/README.md): current workspaces and evidence status.
+- [Standards](standards/): normative architecture, security, quality, licensing, and operations requirements.
+- [Schemas](schemas/): machine-readable product and artifact contracts.
+
+## Architecture and adoption
+
+- [Repository model](docs/explanation/repository-model.md)
+- [Adoption guide](docs/adoption-guide.md)
+- [Product adoption how-to](docs/how-to/adopt-a-product.md)
+- [Architecture decisions](docs/architecture-decisions/)
+
+## Security and assurance
+
+- [Security policy](SECURITY.md)
+- [Repository hardening](docs/repository-hardening.md)
+- [Security response process](docs/security-response-process.md)
+- [Assurance mapping](docs/assurance-mapping.md)
+
+## Product documentation
+
+- [IK-01 Local AI Deployment](products/local-ai-deployment/README.md)
+- [IK-02 PII Protection](products/pii-protection/README.md)
+- [IK-03 Multi-GPU Optimization](products/multigpu-optimization/README.md)
+- [IK-04 Air-Gapped RAG](products/airgapped-rag/README.md)
+
+## Important limitations
+
+HIES is not a hosted service or a compliance certification. Product workspaces are engineering previews unless their release metadata explicitly states otherwise. A passing CI workflow proves only the checks it executes.
