@@ -13,7 +13,7 @@ artifact=$2
 [ -f "$artifact" ] || { echo "artifact not found" >&2; exit 2; }
 
 if command -v sha256sum >/dev/null 2>&1; then
-  expected=$(awk 'NR == 1 { print $1 }' "$checksum_file")
+  expected=$(awk 'NR == 1 { print $1 }' "$checksum_file" | tr 'A-F' 'a-f')
   actual=$(sha256sum "$artifact" | awk '{ print $1 }')
 elif command -v shasum >/dev/null 2>&1; then
   expected=$(awk 'NR == 1 { print $1 }' "$checksum_file")
