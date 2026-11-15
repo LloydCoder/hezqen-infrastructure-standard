@@ -1,0 +1,27 @@
+{
+  "model": {
+    "name": "org/example-70b",
+    "parameters_billion": 70,
+    "layers": 80,
+    "kv_heads": 8,
+    "head_dim": 128,
+    "max_context_length": 32768
+  },
+  "hardware": {
+    "gpus_per_node": 4,
+    "nodes": 1,
+    "vram_gib_per_gpu": 24,
+    "tensor_parallel_size": 4,
+    "pipeline_parallel_size": 1,
+    "max_model_len": 8192,
+    "max_num_seqs": 8,
+    "weight_dtype": "int4",
+    "quantization": "awq",
+    "kv_cache_dtype": "fp16",
+    "gpu_memory_utilization": 0.9,
+    "system_reserve_gib": 2,
+    "activation_reserve_gib": 1,
+    "quantization_overhead_pct": 5
+  },
+  "note": "Illustrative inputs only. Validate the exact checkpoint and GPU before deployment."
+}

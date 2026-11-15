@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "multigpu-optimization",
+  "name": "HEZQEN Multi-GPU Optimization Kit",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "CPU-only model-memory estimator and vLLM tensor/pipeline parallel configuration planner.",
+  "runtime": {
+    "networkRequired": false,
+    "supportedPlatforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "containerized": false
+  },
+  "repository": "https://github.com/LloydCoder/hezqen-infrastructure-standard",
+  "documentation": "https://github.com/LloydCoder/hezqen-infrastructure-standard/tree/main/products/multigpu-optimization",
+  "maintainers": [
+    {
+      "name": "Tinlance / HEZQEN",
+      "url": "https://tinlance.com"
+    }
+  ]
+}
