@@ -55,14 +55,16 @@ jobs:
       - name: Start stack and wait for health
         working-directory: products/local-ai-deployment
         run: docker compose up -d --wait --wait-timeout 300
-      - name: Verify health and loopback-only host exposure
+      - name: Verify host port publication and UI health
         working-directory: products/local-ai-deployment
         run: |
-          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3000/health
-          test "$(docker compose port open-webui 8080)" = "127.0.0.1:3000"
+          PUBLISHED_UI="$(docker compose port open-webui 8080)"
+          echo "Open WebUI host mapping: $PUBLISHED_UI"
+          test "$PUBLISHED_UI" = "127.0.0.1:3000"
+          curl --fail --silent --show-error --retry 20 --retry-connrefused --retry-delay 1 --max-time 5 http://127.0.0.1:3000/health
           OLLAMA_ID="$(docker compose ps -q ollama)"
-          PUBLISHED="$(docker inspect "$OLLAMA_ID" --format '{{range $port, $bindings := .NetworkSettings.Ports}}{{range $bindings}}{{.HostIp}}:{{.HostPort}} {{end}}{{end}}')"
-          test -z "$PUBLISHED"
+          PUBLISHED_OLLAMA="$(docker inspect "$OLLAMA_ID" --format '{{range $port, $bindings := .NetworkSettings.Ports}}{{range $bindings}}{{.HostIp}}:{{.HostPort}} {{end}}{{end}}')"
+          test -z "$PUBLISHED_OLLAMA"
       - name: Verify UI-to-inference connectivity
         working-directory: products/local-ai-deployment
         run: |

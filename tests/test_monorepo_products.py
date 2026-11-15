@@ -28,6 +28,10 @@ class MonorepoProductTests(unittest.TestCase):
         ports = compose["services"]["open-webui"]["ports"]
         self.assertEqual(ports, ["${WEBUI_BIND_ADDRESS:-127.0.0.1}:${WEBUI_PORT:-3000}:8080"])
 
+    def test_open_webui_listens_on_container_interface(self) -> None:
+        compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(compose["services"]["open-webui"]["environment"]["HOST"], "0.0.0.0")
+
     def test_ui_has_no_egress_network(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
         networks = compose["networks"]
@@ -83,6 +87,10 @@ class MonorepoProductTests(unittest.TestCase):
         self.assertLess(
             names.index("Create ephemeral test secret"),
             names.index("Validate base and NVIDIA Compose configurations"),
+        )
+        self.assertLess(
+            names.index("Verify host port publication and UI health"),
+            names.index("Verify UI-to-inference connectivity"),
         )
 
     def test_product_has_required_operational_and_security_docs(self) -> None:
