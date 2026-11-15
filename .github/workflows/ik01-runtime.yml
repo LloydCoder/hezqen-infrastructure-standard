@@ -35,11 +35,6 @@ jobs:
         run: |
           docker version
           docker compose version
-      - name: Validate base and NVIDIA Compose configurations
-        working-directory: products/local-ai-deployment
-        run: |
-          docker compose config --quiet
-          docker compose -f compose.yaml -f compose.nvidia.yaml config --quiet
       - name: Create ephemeral test secret
         working-directory: products/local-ai-deployment
         run: |
@@ -49,6 +44,11 @@ jobs:
           Path(".env").write_text("WEBUI_SECRET_KEY=" + secrets.token_urlsafe(48) + "\n", encoding="utf-8")
           PY
           chmod 600 .env
+      - name: Validate base and NVIDIA Compose configurations
+        working-directory: products/local-ai-deployment
+        run: |
+          docker compose config --quiet
+          docker compose -f compose.yaml -f compose.nvidia.yaml config --quiet
       - name: Pull pinned CPU images
         working-directory: products/local-ai-deployment
         run: docker compose pull
