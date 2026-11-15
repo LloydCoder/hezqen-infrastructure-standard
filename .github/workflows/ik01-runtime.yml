@@ -1,0 +1,89 @@
+name: IK-01 CPU Runtime Smoke
+
+on:
+  pull_request:
+    paths:
+      - "products/local-ai-deployment/**"
+      - "scripts/validate-monorepo.py"
+      - "tests/test_monorepo_products.py"
+      - ".github/workflows/ik01-runtime.yml"
+  push:
+    branches: [main]
+    paths:
+      - "products/local-ai-deployment/**"
+      - "scripts/validate-monorepo.py"
+      - "tests/test_monorepo_products.py"
+      - ".github/workflows/ik01-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ik01-runtime-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cpu-runtime:
+    name: Linux amd64 Compose runtime and network smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Verify Docker and Compose
+        run: |
+          docker version
+          docker compose version
+      - name: Create ephemeral test secret
+        working-directory: products/local-ai-deployment
+        run: |
+          python3 - <<'PY'
+          import secrets
+          from pathlib import Path
+          Path(".env").write_text("WEBUI_SECRET_KEY=" + secrets.token_urlsafe(48) + "\n", encoding="utf-8")
+          PY
+          chmod 600 .env
+      - name: Validate base and NVIDIA Compose configurations
+        working-directory: products/local-ai-deployment
+        run: |
+          docker compose config --quiet
+          docker compose -f compose.yaml -f compose.nvidia.yaml config --quiet
+      - name: Pull pinned CPU images
+        working-directory: products/local-ai-deployment
+        run: docker compose pull
+      - name: Start stack and wait for health
+        working-directory: products/local-ai-deployment
+        run: docker compose up -d --wait --wait-timeout 300
+      - name: Verify host port publication and UI health
+        working-directory: products/local-ai-deployment
+        run: |
+          UI_ID="$(docker compose ps -q open-webui)"
+          docker inspect "$UI_ID" --format '{{json .HostConfig.PortBindings}}' | tee /tmp/hezqen-ui-port-bindings.json
+          jq -e '."8080/tcp"[0].HostIp == "127.0.0.1" and ."8080/tcp"[0].HostPort == "3000"' /tmp/hezqen-ui-port-bindings.json
+          curl --fail --silent --show-error --retry 20 --retry-connrefused --retry-delay 1 --max-time 5 http://127.0.0.1:3000/health
+          OLLAMA_ID="$(docker compose ps -q ollama)"
+          PUBLISHED_OLLAMA="$(docker inspect "$OLLAMA_ID" --format '{{range $port, $bindings := .NetworkSettings.Ports}}{{range $bindings}}{{.HostIp}}:{{.HostPort}} {{end}}{{end}}')"
+          test -z "$PUBLISHED_OLLAMA"
+      - name: Verify UI-to-inference connectivity
+        working-directory: products/local-ai-deployment
+        run: |
+          docker compose exec -T open-webui python -c "import urllib.request; urllib.request.urlopen('http://ollama:11434/api/tags', timeout=10)"
+      - name: Verify UI has no direct Internet egress
+        working-directory: products/local-ai-deployment
+        run: |
+          if docker compose exec -T open-webui python -c "import socket; socket.create_connection(('1.1.1.1', 443), timeout=3)" >/dev/null 2>&1; then
+            echo "Open WebUI unexpectedly has direct Internet egress" >&2
+            exit 1
+          fi
+          echo "Open WebUI egress isolation verified"
+      - name: Collect service logs on failure
+        if: failure()
+        working-directory: products/local-ai-deployment
+        run: docker compose logs --no-color --tail=200
+      - name: Tear down ephemeral stack
+        if: always()
+        working-directory: products/local-ai-deployment
+        run: |
+          docker compose down -v --remove-orphans || true
+          rm -f .env

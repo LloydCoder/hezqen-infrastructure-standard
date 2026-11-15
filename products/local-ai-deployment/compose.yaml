@@ -11,13 +11,14 @@ services:
       - no-new-privileges:true
     pids_limit: 4096
     mem_limit: ${OLLAMA_MEMORY_LIMIT:-16g}
-    cpus: ${OLLAMA_CPUS:-8.0}
+    cpus: ${OLLAMA_CPUS:-2.0}
     volumes:
       - ollama_data:/root/.ollama
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=1g
     networks:
       - inference
+      - model-egress
     healthcheck:
       test: ["CMD", "ollama", "ps"]
       interval: 30s
@@ -27,7 +28,7 @@ services:
     stop_grace_period: 60s
 
   open-webui:
-    image: ${OPEN_WEBUI_IMAGE:-ghcr.io/open-webui/open-webui:v0.13.2}
+    image: ${OPEN_WEBUI_IMAGE:-ghcr.io/open-webui/open-webui:v0.13.2-slim}
     restart: unless-stopped
     read_only: true
     cap_drop:
@@ -36,29 +37,37 @@ services:
       - no-new-privileges:true
     pids_limit: 1024
     mem_limit: ${WEBUI_MEMORY_LIMIT:-2g}
-    cpus: ${WEBUI_CPUS:-2.0}
+    cpus: ${WEBUI_CPUS:-1.0}
     depends_on:
       ollama:
         condition: service_healthy
     environment:
+      HOST: 0.0.0.0
       OLLAMA_BASE_URL: http://ollama:11434
+      RAG_EMBEDDING_ENGINE: ollama
+      RAG_EMBEDDING_MODEL: nomic-embed-text
       WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?Set WEBUI_SECRET_KEY in the local .env file}
       ENABLE_SIGNUP: "false"
       ENABLE_LOGIN_FORM: "true"
+      SCARF_NO_ANALYTICS: "true"
+      DO_NOT_TRACK: "true"
+      ANONYMIZED_TELEMETRY: "false"
+    expose:
+      - "8080"
     ports:
       - "${WEBUI_BIND_ADDRESS:-127.0.0.1}:${WEBUI_PORT:-3000}:8080"
     volumes:
       - open_webui_data:/app/backend/data
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=512m
+      - /root/.cache:rw,noexec,nosuid,size=256m
     networks:
+      - ui-ingress
       - inference
     healthcheck:
       test:
-        - CMD
-        - python
-        - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"
+        - CMD-SHELL
+        - "curl --silent --fail http://localhost:8080/health | jq -ne 'input.status == true' || exit 1"
       interval: 30s
       timeout: 5s
       retries: 5
@@ -68,6 +77,14 @@ services:
 networks:
   inference:
     driver: bridge
+    internal: true
+  model-egress:
+    driver: bridge
+  ui-ingress:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
 
 volumes:
   ollama_data:

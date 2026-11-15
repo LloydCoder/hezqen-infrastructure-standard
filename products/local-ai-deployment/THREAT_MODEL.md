@@ -14,28 +14,32 @@ This model covers the default single-host deployment of Ollama and Open WebUI us
 ## Trust boundaries
 
 1. Operator workstation to loopback-published Open WebUI.
-2. Open WebUI container to Ollama over the Compose bridge.
-3. Containers to the host through Docker Engine, mounted volumes, and optional GPU devices.
-4. Host to external registries/model sources during image and model downloads.
+2. Open WebUI container to Ollama over the internal-only inference network.
+3. Open WebUI host ingress through a dedicated bridge network with IP masquerading disabled.
+4. Ollama container to the model-egress network for model downloads.
+5. Containers to the host through Docker Engine, mounted volumes, and optional GPU devices.
+6. Host to external registries/model sources during image and model downloads.
 
 ## Threats and controls
 
 | Threat | Control | Residual risk |
 |---|---|---|
 | Remote exposure of inference API | Ollama has no published host port | Docker network/host compromise remains in scope |
-| Accidental public UI exposure | Loopback bind default; remote access requires deliberate operator change | Misconfigured bind/proxy/firewall can expose service |
+| Accidental public UI exposure | Loopback bind default; dedicated ingress bridge defaults to loopback | Misconfigured bind/proxy/firewall can expose service |
 | Unauthorized UI access | Login enabled, public signup disabled, unique secret required | Local account lifecycle and host access remain operator responsibilities |
-| Container privilege escalation | Drop capabilities, no-new-privileges, read-only root FS, PID/resource limits | Upstream image process may still run as root; Docker daemon is privileged |
+| UI container data exfiltration | UI ingress bridge disables IP masquerading; UI is not attached to model-egress; runtime egress probe | Host routing/firewall changes or alternate interfaces can alter the result |
+| Model server egress | Only Ollama is attached to the model-egress network | Egress is not allowlisted by this Compose file; enforce policy at host/network layer |
+| Container privilege escalation | Drop capabilities, no-new-privileges, read-only root FS, PID/resource limits | Both upstream images default to UID/GID 0; Docker daemon is privileged |
 | Data loss | Named persistent volumes and documented backup/restore | Backups can be incomplete or untested |
 | Supply-chain compromise | Version-pinned images; release requires digest lock, SBOM, provenance, and review | Upstream publisher compromise and unreviewed model artifacts |
 | Malicious or unsafe model artifact | Model/license review and explicit pull workflow | Model behavior and licensing cannot be fully guaranteed |
-| Data exfiltration | Local default UI, documented egress control, no telemetry claim | Model pulls and other container egress need host-level restriction |
 
 ## Security assumptions and limitations
 
 - The host OS, Docker Engine, operator account, and firewall are trusted and patched.
 - Anyone with Docker daemon access is effectively privileged on the host.
-- Model download requires outbound connectivity; this kit does not implement a complete egress proxy or network allowlist.
-- The upstream images' runtime user and writable-path requirements must be verified for each digest before release. Do not infer non-root operation from this Compose file.
+- Model download requires outbound connectivity. The Ollama service has an egress-capable network; this kit does not implement a complete registry/model-source allowlist.
+- Open WebUI is attached to the internal inference network and a separate bridge whose IP masquerading is disabled. The runtime smoke workflow tests direct outbound TCP connectivity from the UI container. This is not a substitute for host firewall policy.
+- The upstream Ollama and Open WebUI images run as UID/GID 0 by default. Capabilities are dropped, but non-root execution is not claimed. A reviewed non-root image build or a formally approved time-bounded exception is required before stable production release.
 - Do not expose the UI directly to the public Internet. Use a private VPN or an authenticated reverse proxy with TLS and network controls.
 - This kit does not guarantee privacy, regulatory compliance, or safe model outputs.

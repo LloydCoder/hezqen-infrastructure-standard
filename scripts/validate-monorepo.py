@@ -13,10 +13,6 @@ from jsonschema import Draft202012Validator, FormatChecker
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def fail(message: str) -> None:
-    raise ValueError(message)
-
-
 def validate_product(path: Path, schema: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     try:
@@ -60,6 +56,7 @@ def validate_product(path: Path, schema: dict[str, Any]) -> list[str]:
         if path.name == "local-ai-deployment":
             ollama = services.get("ollama", {})
             webui = services.get("open-webui", {})
+            networks = compose.get("networks", {})
             if not ollama or not webui:
                 errors.append("local-ai-deployment: ollama and open-webui services are required")
             if ollama.get("ports"):
@@ -69,6 +66,14 @@ def validate_product(path: Path, schema: dict[str, Any]) -> list[str]:
                 errors.append("local-ai-deployment: Open WebUI must bind to loopback by default")
             if webui.get("depends_on", {}).get("ollama", {}).get("condition") != "service_healthy":
                 errors.append("local-ai-deployment: Open WebUI must wait for healthy Ollama")
+            if networks.get("inference", {}).get("internal") is not True:
+                errors.append("local-ai-deployment: inference network must be internal-only")
+            if webui.get("networks") != ["ui-ingress", "inference"]:
+                errors.append("local-ai-deployment: Open WebUI must attach only to UI ingress and internal inference networks")
+            if networks.get("ui-ingress", {}).get("driver_opts", {}).get("com.docker.network.bridge.enable_ip_masquerade") != "false":
+                errors.append("local-ai-deployment: UI ingress network must disable IP masquerading")
+            if set(ollama.get("networks", [])) != {"inference", "model-egress"}:
+                errors.append("local-ai-deployment: Ollama must attach to inference and model-egress networks")
     except (OSError, json.JSONDecodeError, yaml.YAMLError, TypeError, AttributeError, ValueError) as exc:
         errors.append(f"{path.name}: unable to validate product workspace: {exc}")
     return errors
