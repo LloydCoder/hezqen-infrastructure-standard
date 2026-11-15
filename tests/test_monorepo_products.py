@@ -9,6 +9,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCT = ROOT / "products" / "local-ai-deployment"
+RUNTIME_WORKFLOW = ROOT / ".github" / "workflows" / "ik01-runtime.yml"
 
 
 class MonorepoProductTests(unittest.TestCase):
@@ -63,6 +64,15 @@ class MonorepoProductTests(unittest.TestCase):
         devices = compose["services"]["ollama"]["deploy"]["resources"]["reservations"]["devices"]
         self.assertEqual(devices[0]["driver"], "nvidia")
         self.assertIn("gpu", devices[0]["capabilities"])
+
+    def test_runtime_workflow_creates_secret_before_compose_validation(self) -> None:
+        workflow = yaml.safe_load(RUNTIME_WORKFLOW.read_text(encoding="utf-8"))
+        steps = workflow["jobs"]["cpu-runtime"]["steps"]
+        names = [step["name"] for step in steps]
+        self.assertLess(
+            names.index("Create ephemeral test secret"),
+            names.index("Validate base and NVIDIA Compose configurations"),
+        )
 
     def test_product_has_required_operational_and_security_docs(self) -> None:
         for relative in ("THREAT_MODEL.md", "SECURITY.md", "CHANGELOG.md", "docs/OPERATIONS.md", "docs/COMPATIBILITY.md"):
