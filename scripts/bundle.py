@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -71,16 +72,27 @@ def build_bundle(root: Path, output_dir: Path, source_revision: str) -> dict[str
             raise ValueError(f"product directory/manifest identity mismatch: {product_id}")
         archive_name = f"{product_id}-{version}.tar.gz"
         archive_path = output_dir / archive_name
-        with tarfile.open(archive_path, "w:gz", compresslevel=9) as archive:
-            for path in sorted(product_dir.rglob("*")):
-                if not path.is_file() or path.is_symlink():
-                    continue
-                relative = path.relative_to(product_dir)
-                if any(part in {".git", ".venv", "__pycache__"} for part in relative.parts):
-                    continue
-                if path.name == ".env" or path.suffix in {".pyc", ".pyo"}:
-                    continue
-                archive.add(path, arcname=(PurePosixPath(product_id) / PurePosixPath(relative.as_posix())).as_posix(), recursive=False)
+        with archive_path.open("wb") as raw_archive:
+            with gzip.GzipFile(fileobj=raw_archive, mode="wb", compresslevel=9, mtime=0) as compressed:
+                with tarfile.open(fileobj=compressed, mode="w", format=tarfile.PAX_FORMAT) as archive:
+                    for path in sorted(product_dir.rglob("*")):
+                        if not path.is_file() or path.is_symlink():
+                            continue
+                        relative = path.relative_to(product_dir)
+                        if any(part in {".git", ".venv", "__pycache__"} for part in relative.parts):
+                            continue
+                        if path.name == ".env" or path.suffix in {".pyc", ".pyo"}:
+                            continue
+                        arcname = (PurePosixPath(product_id) / PurePosixPath(relative.as_posix())).as_posix()
+                        info = archive.gettarinfo(str(path), arcname=arcname)
+                        info.uid = 0
+                        info.gid = 0
+                        info.uname = ""
+                        info.gname = ""
+                        info.mtime = 0
+                        info.pax_headers = {}
+                        with path.open("rb") as source:
+                            archive.addfile(info, source)
         entries.append({
             "id": product_id,
             "version": version,
