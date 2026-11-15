@@ -27,7 +27,7 @@ This checklist applies to the HIES monorepo. Repository settings are administrat
 
 ## Automated Python dependency audit
 
-The HIES security workflow installs the pinned development requirements and runs `pip-audit --strict --requirement requirements-dev.txt`. This checks the resolved Python dependency graph in that requirements file against the configured public vulnerability database and fails on known advisories or incomplete dependency collection.
+The HIES security workflow installs the pinned development requirements and runs `pip-audit --strict --requirement requirements-dev.txt`. Product `pyproject.toml` build-system requirements must be exact-pinned and mirrored in `requirements-dev.txt`; the monorepo validator enforces that parity so build backends are included in the audited dependency graph. This checks the resolved Python dependency graph against the configured public vulnerability database and fails on known advisories or incomplete dependency collection.
 
 Scope limitation: this is not a complete repository or product supply-chain scan. It does not inspect container base-image packages, Ollama/Open WebUI images, downloaded model artifacts, operating-system libraries, arbitrary Python source, or dependencies that are not represented in `requirements-dev.txt`. Product-specific container and model inventories still require separate image, license, provenance and runtime review. A clean pip-audit result is not a security certification.
 
