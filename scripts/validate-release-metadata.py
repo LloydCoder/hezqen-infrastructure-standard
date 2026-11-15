@@ -50,7 +50,15 @@ def verify_artifacts(data: object, artifact_root: Path) -> list[str]:
             continue
         name = item["name"]
         relative = PurePosixPath(name)
-        if relative.is_absolute() or not relative.parts or any(part in {"", ".", ".."} for part in relative.parts):
+        if (
+            "\\" in name
+            or "\x00" in name
+            or ":" in name
+            or relative.as_posix() != name
+            or relative.is_absolute()
+            or not relative.parts
+            or any(part in {"", ".", ".."} for part in relative.parts)
+        ):
             errors.append(f"unsafe artifact path: {name}")
             continue
         if name in seen:
