@@ -17,7 +17,7 @@ jobs:
   validate:
     name: Validate schemas and manifest tooling
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Check out exact source revision
         run: |
@@ -31,15 +31,20 @@ jobs:
           git checkout --detach FETCH_HEAD
       - name: Verify Python runtime
         run: python3 --version
+      - name: Install pinned schema-validation dependency
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir --only-binary=:all: -r requirements-dev.txt
       - name: Run unit and regression tests
         run: python3 -m unittest discover -s tests -v
-      - name: Validate checked-in JSON documents
+      - name: Validate JSON Schema Draft 2020-12 contracts and fixtures
+        run: python3 scripts/validate-schemas.py
+      - name: Validate all checked-in JSON documents
         run: |
           python3 - <<'PY'
           import json
           from pathlib import Path
-          files = sorted(Path("schemas").glob("*.json"))
-          assert files, "No JSON schemas found"
+          files = sorted(Path(".").rglob("*.json"))
+          files = [p for p in files if ".git" not in p.parts]
+          assert files, "No JSON documents found"
           for path in files:
               json.loads(path.read_text(encoding="utf-8"))
               print(f"VALID {path}")
