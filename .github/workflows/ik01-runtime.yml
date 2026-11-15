@@ -27,7 +27,7 @@ jobs:
   cpu-runtime:
     name: Linux amd64 Compose runtime and network smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Check out exact source revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -49,12 +49,22 @@ jobs:
         run: |
           docker compose config --quiet
           docker compose -f compose.yaml -f compose.nvidia.yaml config --quiet
-      - name: Pull pinned CPU images
+      - name: Build non-root product images
         working-directory: products/local-ai-deployment
-        run: docker compose pull
+        run: docker compose build --pull
+      - name: Print upstream base image digests
+        working-directory: products/local-ai-deployment
+        run: |
+          docker image inspect ollama/ollama:0.40.16 --format '{{index .RepoDigests 0}}'
+          docker image inspect ghcr.io/open-webui/open-webui:v0.13.2-slim --format '{{index .RepoDigests 0}}'
       - name: Start stack and wait for health
         working-directory: products/local-ai-deployment
-        run: docker compose up -d --wait --wait-timeout 300
+        run: docker compose up -d --no-build --wait --wait-timeout 300
+      - name: Verify Open WebUI and Ollama run as non-root
+        working-directory: products/local-ai-deployment
+        run: |
+          test "$(docker compose exec -T ollama id -u)" = "10002"
+          test "$(docker compose exec -T open-webui id -u)" = "10001"
       - name: Verify host port publication and UI health
         working-directory: products/local-ai-deployment
         run: |

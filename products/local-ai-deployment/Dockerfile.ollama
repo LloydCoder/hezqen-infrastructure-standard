@@ -1,0 +1,10 @@
+ARG BASE_IMAGE=ollama/ollama:0.40.16
+FROM ${BASE_IMAGE}
+
+USER 0:0
+RUN mkdir -p /home/ollama/.ollama && chown -R 10002:10002 /home/ollama
+
+ENV HOME=/home/ollama
+ENV OLLAMA_MODELS=/home/ollama/.ollama/models
+
+USER 10002:10002

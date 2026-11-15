@@ -64,6 +64,15 @@ class MonorepoProductTests(unittest.TestCase):
         self.assertIn("USER 10001:10001", dockerfile)
         self.assertIn("chown -R 10001:10001 /app /root", dockerfile)
 
+    def test_ollama_uses_a_non_root_build(self) -> None:
+        compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
+        service = compose["services"]["ollama"]
+        dockerfile = (PRODUCT / "Dockerfile.ollama").read_text(encoding="utf-8")
+        self.assertEqual(service["user"], "10002:10002")
+        self.assertEqual(service["build"]["dockerfile"], "Dockerfile.ollama")
+        self.assertIn("USER 10002:10002", dockerfile)
+        self.assertIn("chown -R 10002:10002 /home/ollama", dockerfile)
+
     def test_default_cpu_limits_are_portable_to_two_core_hosts(self) -> None:
         compose = yaml.safe_load((PRODUCT / "compose.yaml").read_text(encoding="utf-8"))
         self.assertEqual(compose["services"]["ollama"]["cpus"], "${OLLAMA_CPUS:-2.0}")
@@ -94,15 +103,15 @@ class MonorepoProductTests(unittest.TestCase):
         self.assertEqual(devices[0]["driver"], "nvidia")
         self.assertIn("gpu", devices[0]["capabilities"])
 
-    def test_runtime_workflow_builds_non_root_image_before_start(self) -> None:
+    def test_runtime_workflow_builds_non_root_images_before_start(self) -> None:
         workflow = yaml.safe_load(RUNTIME_WORKFLOW.read_text(encoding="utf-8"))
         steps = workflow["jobs"]["cpu-runtime"]["steps"]
         names = [step["name"] for step in steps]
         self.assertLess(
-            names.index("Build non-root Open WebUI image"),
+            names.index("Build non-root product images"),
             names.index("Start stack and wait for health"),
         )
-        self.assertIn("Verify Open WebUI runs as non-root", names)
+        self.assertIn("Verify Open WebUI and Ollama run as non-root", names)
 
     def test_runtime_workflow_creates_secret_before_compose_validation(self) -> None:
         workflow = yaml.safe_load(RUNTIME_WORKFLOW.read_text(encoding="utf-8"))

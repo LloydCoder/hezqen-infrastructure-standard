@@ -1,0 +1,8 @@
+ARG BASE_IMAGE=ghcr.io/open-webui/open-webui:v0.13.2-slim
+FROM ${BASE_IMAGE}
+
+USER 0:0
+RUN chown -R 10001:10001 /app /root
+
+ENV HOME=/root
+USER 10001:10001
