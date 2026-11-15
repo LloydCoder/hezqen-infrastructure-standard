@@ -16,7 +16,7 @@ def model():
 
 
 def hw(**overrides):
-    values={"gpus_per_node":4,"nodes":1,"vram_gib_per_gpu":24,"tensor_parallel_size":4,"pipeline_parallel_size":1,"max_model_len":8192,"max_num_seqs":8,"weight_dtype":"int4","kv_cache_dtype":"fp16"}
+    values={"gpus_per_node":4,"nodes":1,"vram_gib_per_gpu":24,"tensor_parallel_size":4,"pipeline_parallel_size":1,"max_model_len":8192,"max_num_seqs":8,"weight_dtype":"int4","quantization":"awq","kv_cache_dtype":"fp16"}
     values.update(overrides)
     return HardwareProfile(**values)
 

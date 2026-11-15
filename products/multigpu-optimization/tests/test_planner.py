@@ -62,6 +62,10 @@ class PlannerTests(unittest.TestCase):
         plan=estimate(model(),hw(nodes=2,pipeline_parallel_size=2))
         self.assertIn("--distributed-executor-backend ray",plan.vllm["shell_command"])
 
+    def test_single_pipeline_stage_does_not_force_ray(self):
+        plan=estimate(model(),hw(nodes=2,pipeline_parallel_size=1))
+        self.assertNotIn("--distributed-executor-backend",plan.vllm["shell_command"])
+
     def test_plan_contains_command(self):
         plan=estimate(model(),hw(weight_dtype="bf16"))
         self.assertEqual(plan.to_dict()["model"]["name"],"org/example-70b")

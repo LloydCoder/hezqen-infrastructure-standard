@@ -127,7 +127,7 @@ def estimate(model: ModelProfile, hw: HardwareProfile) -> Plan:
     command = ["vllm","serve",model.name,"--tensor-parallel-size",str(tp),"--pipeline-parallel-size",str(pp),"--max-model-len",str(hw.max_model_len),"--max-num-seqs",str(hw.max_num_seqs),"--gpu-memory-utilization",f"{hw.gpu_memory_utilization:.2f}","--dtype",dtype,"--kv-cache-dtype",kv_dtype]
     if hw.quantization:
         command.extend(["--quantization", hw.quantization])
-    if hw.nodes > 1:
+    if pp > 1:
         command.extend(["--distributed-executor-backend", "ray"])
     return Plan(
         model={"name":model.name,"parameters_billion":model.parameters_billion,"layers":model.layers,"kv_heads":model.kv_heads,"head_dim":model.head_dim,"max_context_length":model.max_context_length},
