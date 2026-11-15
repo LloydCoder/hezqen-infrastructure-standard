@@ -1,0 +1,92 @@
+name: IK-02 PII Runtime Smoke
+
+on:
+  pull_request:
+    paths:
+      - "products/pii-protection/**"
+      - "tests/test_pii_protection.py"
+      - ".github/workflows/ik02-runtime.yml"
+  push:
+    branches: [main]
+    paths:
+      - "products/pii-protection/**"
+      - "tests/test_pii_protection.py"
+      - ".github/workflows/ik02-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ik02-runtime-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime:
+    name: Linux amd64 non-root PII API runtime and policy smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Verify Docker and Compose
+        run: |
+          docker version
+          docker compose version
+          docker buildx version
+      - name: Validate Compose configuration
+        working-directory: products/pii-protection
+        run: docker compose config --quiet
+      - name: Build digest-pinned PII service
+        working-directory: products/pii-protection
+        run: docker compose build --pull
+      - name: Start service and wait for health
+        working-directory: products/pii-protection
+        run: docker compose up -d --no-build --wait --wait-timeout 60
+      - name: Verify non-root identity and loopback host binding
+        working-directory: products/pii-protection
+        run: |
+          test "$(docker compose exec -T pii-protection id -u)" = "10001"
+          ID="$(docker compose ps -q pii-protection)"
+          docker inspect "$ID" --format '{{json .HostConfig.PortBindings}}' | tee /tmp/hezqen-pii-port-bindings.json
+          jq -e '."8080/tcp"[0].HostIp == "127.0.0.1" and ."8080/tcp"[0].HostPort == "8081"' /tmp/hezqen-pii-port-bindings.json
+          curl --fail --silent --show-error http://127.0.0.1:8081/healthz
+      - name: Verify PII redaction and no request-body logging
+        working-directory: products/pii-protection
+        run: |
+          RESPONSE="$(curl --fail --silent --show-error http://127.0.0.1:8081/v1/redact -H 'Content-Type: application/json' -d '{"text":"Contact a.person@example.com"}')"
+          printf '%s' "$RESPONSE" | jq -e '.result.text | contains("[EMAIL_1]") and (contains("a.person@example.com") | not)'
+          if docker compose logs --no-color | grep -F "a.person@example.com"; then
+            echo "Raw PII unexpectedly appeared in service logs" >&2
+            exit 1
+          fi
+      - name: Verify content-type and request-size rejection
+        working-directory: products/pii-protection
+        run: |
+          STATUS="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8081/v1/redact -d 'x')"
+          test "$STATUS" = "415"
+          STATUS="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8081/v1/redact -H 'Content-Type: application/json' --data-binary @<(python3 -c 'print("x" * 1100000)'))"
+          test "$STATUS" = "413"
+      - name: Verify block policy fails closed
+        working-directory: products/pii-protection
+        run: |
+          PII_ACTION=block docker compose up -d --no-build --force-recreate --wait --wait-timeout 30
+          STATUS="$(curl --silent --output /tmp/hezqen-pii-block.json --write-out '%{http_code}' http://127.0.0.1:8081/v1/redact -H 'Content-Type: application/json' -d '{"text":"Contact a.person@example.com"}')"
+          test "$STATUS" = "422"
+          jq -e '.error == "pii_policy_block"' /tmp/hezqen-pii-block.json
+          ! grep -F "a.person@example.com" /tmp/hezqen-pii-block.json
+      - name: Verify PII service has no direct Internet egress
+        working-directory: products/pii-protection
+        run: |
+          if docker compose exec -T pii-protection python -c "import socket; socket.create_connection(('1.1.1.1', 443), timeout=2)" >/dev/null 2>&1; then
+            echo "PII service unexpectedly has direct Internet egress" >&2
+            exit 1
+          fi
+      - name: Collect service logs on failure
+        if: failure()
+        working-directory: products/pii-protection
+        run: docker compose logs --no-color --tail=200
+      - name: Tear down ephemeral service
+        if: always()
+        working-directory: products/pii-protection
+        run: docker compose down -v --remove-orphans

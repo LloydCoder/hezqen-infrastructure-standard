@@ -67,6 +67,16 @@ class PiiProtectionTests(unittest.TestCase):
         with self.assertRaises(RedactionError):
             RedactionEngine().redact_json({"value": object()})
 
+    def test_runtime_workflow_exercises_pii_api_security_contract(self) -> None:
+        import yaml
+        workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "ik02-runtime.yml").read_text(encoding="utf-8"))
+        steps = workflow["jobs"]["runtime"]["steps"]
+        names = [step["name"] for step in steps]
+        self.assertIn("Verify non-root identity and loopback host binding", names)
+        self.assertIn("Verify PII redaction and no request-body logging", names)
+        self.assertIn("Verify block policy fails closed", names)
+        self.assertIn("Verify PII service has no direct Internet egress", names)
+
     def test_pii_product_manifest_and_compose_contract(self) -> None:
         import json
         import yaml
