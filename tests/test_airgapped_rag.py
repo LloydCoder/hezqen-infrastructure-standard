@@ -89,6 +89,8 @@ class AirGappedRagTests(unittest.TestCase):
         installer=(PRODUCT/"scripts"/"install-offline.sh").read_text(encoding="utf-8")
         self.assertIn("docker load -i images.tar",installer)
         self.assertIn("--pull never",installer)
+        self.assertIn("images.lock.json",installer)
+        self.assertIn("qdrant_storage",installer)
         self.assertNotIn("docker pull",installer)
 
 
