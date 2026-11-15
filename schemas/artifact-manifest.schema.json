@@ -49,11 +49,13 @@
           },
           "signature": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "pattern": "^https?://[^\\\\s]+$"
           },
           "sbom": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "pattern": "^https?://[^\\\\s]+$"
           }
         }
       }
