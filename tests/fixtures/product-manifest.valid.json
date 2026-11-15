@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "local-ai-kit",
+  "name": "Local AI Deployment Kit",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Secure local inference deployment profile.",
+  "runtime": {
+    "networkRequired": false,
+    "supportedPlatforms": [
+      "linux/amd64"
+    ],
+    "containerized": true
+  },
+  "repository": "https://github.com/LloydCoder/hezqen-local-ai-deployment-kit"
+}
