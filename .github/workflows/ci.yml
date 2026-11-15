@@ -1,0 +1,37 @@
+name: HIES CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hies-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate schemas and manifest tooling
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Validate checked-in JSON schemas
+        run: python -c "import json,pathlib; [json.loads(p.read_text()) for p in pathlib.Path('schemas').glob('*.json')]; print('All schema documents are valid JSON')"
+      - name: Validate schema and policy files are present
+        run: |
+          test -s schemas/product-manifest.schema.json
+          test -s standards/quality/testing-standard.md
+          test -s standards/security/secure-container-baseline.md
+          test -s standards/security/release-integrity.md
