@@ -1,0 +1,13 @@
+{
+  "product": "local-ai-kit",
+  "version": "0.1.0",
+  "sourceRevision": "1234567abcdef",
+  "artifacts": [
+    {
+      "name": "kit.tar.gz",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "mediaType": "application/gzip",
+      "sizeBytes": 1024
+    }
+  ]
+}
