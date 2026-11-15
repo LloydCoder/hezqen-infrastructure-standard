@@ -1,0 +1,6 @@
+# Require the repository maintainer to review changes to normative standards and automation.
+* @LloydCoder
+/.github/ @LloydCoder
+/schemas/ @LloydCoder
+/standards/ @LloydCoder
+/workflows/ @LloydCoder
