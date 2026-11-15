@@ -1,0 +1,55 @@
+name: Bug report
+description: Report a reproducible defect in HIES or a product workspace.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include credentials, customer data, personal data, or exploitable vulnerability details. Use SECURITY.md for security reports."
+  - type: input
+    id: area
+    attributes:
+      label: Affected area
+      description: Product ID, script, schema, workflow, or documentation path.
+      placeholder: products/ik-xx or scripts/...
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Commit or product version
+      placeholder: Commit SHA or version
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, architecture, Python, Docker, Compose, GPU, or model versions as relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include exact commands and sanitized output.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Checks already performed
+    validations:
+      required: false

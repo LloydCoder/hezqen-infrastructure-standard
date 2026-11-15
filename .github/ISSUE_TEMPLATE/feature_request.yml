@@ -1,0 +1,49 @@
+name: Feature or standards proposal
+description: Propose an improvement to HIES or an infrastructure kit.
+title: "proposal: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: "For normative changes, include security, compatibility, operational, and migration impact."
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What concrete problem should this address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the behavior, standard, schema, or workflow you want.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Affected products and contracts
+      description: List product IDs, standards, schemas, and workflows affected.
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and privacy impact
+      description: Include trust-boundary and data-handling implications.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and migration
+      description: Explain breaking changes, migration steps, and rollback considerations.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false

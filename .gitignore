@@ -1,10 +1,54 @@
+# Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+.Python
 .venv/
 venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Build and packaging
+build/
+dist/
+*.egg-info/
+.wheels/
+pip-wheel-metadata/
+
+# Environment and secrets
 .env
 .env.*
 !.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+.private/
+
+# Generated product artifacts
+products/**/dist/
+products/**/backups/
+products/**/.cache/
+
+# Editors and operating systems
 .DS_Store
-.coverage
-.pytest_cache/
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
