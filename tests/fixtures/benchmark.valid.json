@@ -1,0 +1,22 @@
+{
+  "benchmark": "local-inference-smoke",
+  "recordedAt": "2026-11-15T10:00:00Z",
+  "sourceRevision": "1234567abcdef",
+  "environment": {
+    "os": "Ubuntu 24.04",
+    "cpu": "Example CPU"
+  },
+  "workload": {
+    "requests": 100
+  },
+  "metrics": [
+    {
+      "name": "requests_per_second",
+      "value": 12.5,
+      "unit": "req/s"
+    }
+  ],
+  "limitations": [
+    "Synthetic fixture; not a product performance claim."
+  ]
+}
