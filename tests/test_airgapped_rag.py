@@ -69,6 +69,15 @@ class AirGappedRagTests(unittest.TestCase):
         self.assertIn("untrusted reference material",system)
         self.assertEqual(result["sources"][0]["source_id"],"doc-1")
 
+    def test_runtime_workflow_exercises_offline_acceptance(self):
+        import yaml
+        workflow=yaml.safe_load((ROOT/".github"/"workflows"/"ik04-offline-runtime.yml").read_text(encoding="utf-8"))
+        names=[step["name"] for step in workflow["jobs"]["offline-runtime"]["steps"]]
+        self.assertIn("Remove connected-stage images and model volume",names)
+        self.assertIn("Install from local bundle with registry pulls disabled",names)
+        self.assertIn("Verify offline document ingestion and vector retrieval",names)
+        self.assertIn("Verify RAG API has no direct Internet egress",names)
+
     def test_compose_exposes_only_loopback_api(self):
         import yaml
         compose=yaml.safe_load((PRODUCT/"compose.yaml").read_text(encoding="utf-8"))
