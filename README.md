@@ -24,8 +24,8 @@ The infrastructure bundle aggregates compatible product releases; it must not du
 - `standards/`: normative architecture, security, quality, licensing, and operations requirements.
 - `schemas/`: machine-readable product, compatibility, benchmark, and artifact contracts.
 - `templates/`: reusable product documentation and operational templates.
-- `workflows/`: CI, security, and release workflow building blocks.
-- `scripts/`: local validation and release-integrity utilities.
+- `workflows/`: copy-and-adapt CI, security, and release workflow templates; intentionally failing placeholders must be replaced before use.
+- `scripts/`: product-manifest validation, schema validation, release-manifest generation, checksum verification, and artifact-integrity verification.
 - `tests/`: automated verification for HIES tooling and contracts.
 - `docs/`: engineering handbook and lifecycle procedures.
 
@@ -52,7 +52,7 @@ python3 scripts/validate-schemas.py
 python3 scripts/validate-manifest.py path/to/product-manifest.json
 ```
 
-The manifest validator uses the normative Draft 2020-12 JSON Schema, including declared formats. CI validates every schema and the checked-in positive/negative fixtures.
+The manifest validator uses the normative Draft 2020-12 JSON Schema, including URL constraints. CI validates every schema, positive/negative fixtures, and the sample product's manifest and artifact checksums. The release metadata tools reject path traversal and symlink artifacts.
 
 ## Adoption
 
