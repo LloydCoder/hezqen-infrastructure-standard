@@ -19,17 +19,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Check out exact source revision
+        run: |
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          git checkout --detach FETCH_HEAD
+      - name: Verify Python runtime
+        run: python3 --version
       - name: Run unit tests
-        run: python -m unittest discover -s tests -v
-      - name: Validate checked-in JSON schemas
-        run: python -c "import json,pathlib; [json.loads(p.read_text()) for p in pathlib.Path('schemas').glob('*.json')]; print('All schema documents are valid JSON')"
-      - name: Validate schema and policy files are present
+        run: python3 -m unittest discover -s tests -v
+      - name: Validate checked-in JSON documents
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          files = sorted(Path("schemas").glob("*.json"))
+          assert files, "No JSON schemas found"
+          for path in files:
+              json.loads(path.read_text(encoding="utf-8"))
+              print(f"VALID {path}")
+          PY
+      - name: Validate mandatory standards are present
         run: |
           test -s schemas/product-manifest.schema.json
           test -s standards/quality/testing-standard.md
