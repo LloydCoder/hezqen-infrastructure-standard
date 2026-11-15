@@ -1,81 +1,56 @@
 #!/usr/bin/env python3
-"""Validate the required HEZQEN product-manifest contract using stdlib only."""
+"""Validate a HEZQEN product manifest against the normative JSON Schema."""
 from __future__ import annotations
 
+import argparse
 import json
-import re
 import sys
 from pathlib import Path
-from urllib.parse import urlparse
+from typing import Any
 
-SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$")
-SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema.exceptions import SchemaError
 
 
-def validate(data: object) -> list[str]:
-    errors: list[str] = []
-    if not isinstance(data, dict):
-        return ["manifest root must be a JSON object"]
-    required = {"schemaVersion", "id", "name", "version", "license", "description", "runtime"}
-    missing = sorted(required - data.keys())
-    if missing:
-        errors.append("missing required fields: " + ", ".join(missing))
-    allowed = required | {"repository", "documentation", "support", "maintainers"}
-    extra = sorted(data.keys() - allowed)
-    if extra:
-        errors.append("unknown fields: " + ", ".join(extra))
-    if data.get("schemaVersion") != "1.0.0":
-        errors.append("schemaVersion must equal 1.0.0")
-    if not isinstance(data.get("id"), str) or not SLUG.fullmatch(data["id"]):
-        errors.append("id must be a lowercase kebab-case slug")
-    for field in ("name", "license", "description"):
-        value = data.get(field)
-        if not isinstance(value, str) or not value.strip():
-            errors.append(f"{field} must be a non-empty string")
-    if isinstance(data.get("version"), str):
-        if not SEMVER.fullmatch(data["version"]):
-            errors.append("version must follow Semantic Versioning")
-    else:
-        errors.append("version must be a string")
-    runtime = data.get("runtime")
-    if not isinstance(runtime, dict):
-        errors.append("runtime must be an object")
-    else:
-        if set(runtime) - {"networkRequired", "supportedPlatforms", "containerized"}:
-            errors.append("runtime contains unknown fields")
-        if not isinstance(runtime.get("networkRequired"), bool):
-            errors.append("runtime.networkRequired must be a boolean")
-        if "supportedPlatforms" in runtime:
-            platforms = runtime["supportedPlatforms"]
-            if not isinstance(platforms, list) or any(not isinstance(x, str) or not x for x in platforms):
-                errors.append("runtime.supportedPlatforms must be an array of non-empty strings")
-        if "containerized" in runtime and not isinstance(runtime["containerized"], bool):
-            errors.append("runtime.containerized must be a boolean")
-    for field in ("repository", "documentation", "support"):
-        if field in data:
-            value = data[field]
-            parsed = urlparse(value) if isinstance(value, str) else None
-            if not parsed or parsed.scheme not in {"https", "http"} or not parsed.netloc:
-                errors.append(f"{field} must be an absolute HTTP(S) URL")
-    return errors
+def validate(data: object, schema_path: Path | None = None) -> list[str]:
+    path = schema_path or Path(__file__).parents[1] / "schemas" / "product-manifest.schema.json"
+    try:
+        schema: Any = json.loads(path.read_text(encoding="utf-8"))
+        Draft202012Validator.check_schema(schema)
+        validator = Draft202012Validator(schema, format_checker=FormatChecker())
+        errors = sorted(
+            validator.iter_errors(data),
+            key=lambda error: (list(error.absolute_path), error.message),
+        )
+    except (OSError, json.JSONDecodeError, SchemaError, ValueError) as exc:
+        return [f"schema validation could not run: {exc}"]
+    return [
+        f"{'/'.join(map(str, error.absolute_path)) or '<root>'}: {error.message}"
+        for error in errors
+    ]
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        print("usage: validate-manifest.py PATH", file=sys.stderr)
-        return 2
-    path = Path(sys.argv[1])
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("manifest", type=Path, help="path to product-manifest JSON")
+    parser.add_argument(
+        "--schema",
+        type=Path,
+        default=Path(__file__).parents[1] / "schemas" / "product-manifest.schema.json",
+    )
+    args = parser.parse_args()
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(args.manifest.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        print(f"cannot read valid JSON: {exc}", file=sys.stderr)
+        print(f"ERROR: cannot read valid JSON: {exc}", file=sys.stderr)
         return 2
-    errors = validate(data)
+
+    errors = validate(data, args.schema)
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
         return 1
-    print(f"OK: {path} satisfies the HIES product manifest contract")
+    print(f"OK: {args.manifest} satisfies the HIES product manifest schema")
     return 0
 
 
