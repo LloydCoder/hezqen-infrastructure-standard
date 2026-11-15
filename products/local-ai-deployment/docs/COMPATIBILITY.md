@@ -28,9 +28,9 @@ The slim Open WebUI variant is used with Ollama as the embedding engine. Pull th
 - Compose YAML, image lock, and security contract: validated statically in repository CI.
 - Linux/amd64 CPU container startup, non-root process identity, health, loopback binding, internal service connectivity, and UI egress isolation: exercised by the IK-01 runtime smoke workflow.
 - CPU generation with `qwen2.5:0.5b` and embedding response with `nomic-embed-text`: exercised by the runtime smoke workflow.
+- Checksummed volume backup and destructive restore into test volumes: exercised by the backup/restore smoke test.
 - NVIDIA runtime/GPU inference: not yet evidenced.
 - ARM64 runtime: not declared supported.
-- Backup/restore: documented; restore drill not yet evidenced.
 - SBOM and signed provenance: release gates, not yet evidenced.
 
 Do not represent undeclared configurations as supported.

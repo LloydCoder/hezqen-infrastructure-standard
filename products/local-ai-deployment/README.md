@@ -2,7 +2,7 @@
 
 A hardened, local-first inference workspace using Ollama for model serving and the slim Open WebUI image for the operator interface. Both application containers are built to run as non-root users. The default UI is published only on host loopback; the Ollama API is not published. Open WebUI reaches Ollama over a private inference network and uses a dedicated no-masquerade bridge for loopback ingress, without joining Ollama's egress network.
 
-> **Status: engineering preview.** Static CI and a Linux/amd64 CPU runtime test now build and start both non-root images, verify network boundaries, run a small chat model, and exercise the Ollama embedding API. A production release still requires a completed backup/restore drill, SBOM/provenance generation, and NVIDIA GPU acceptance testing.
+> **Status: engineering preview.** Static CI and a Linux/amd64 CPU runtime test build and start both non-root images, verify network boundaries, run a small chat model, exercise the embedding API, and test volume backup/restore. A production release still requires SBOM/provenance generation and NVIDIA GPU acceptance testing.
 
 ## What is included
 
@@ -12,14 +12,14 @@ A hardened, local-first inference workspace using Ollama for model serving and t
 - Open WebUI on the private inference network and a dedicated no-masquerade UI bridge, published to `127.0.0.1:3000` by default.
 - Slim Open WebUI image with embeddings routed to Ollama.
 - Explicit no-tracking environment settings for Open WebUI.
-- Persistent named volumes for model and application data.
+- Persistent named volumes, checksum-verified backup/restore scripts, and restore smoke tests.
 - Health checks, startup dependency ordering, restart policy, resource limits, dropped Linux capabilities, no-new-privileges, and read-only container root filesystems with explicit writable mounts.
 - Optional NVIDIA GPU override.
 - Operator guidance for model pulls, backups, updates, rollback, and network exposure.
 
 ## Prerequisites
 
-- Linux x86_64 host with Docker Engine and Docker Compose v2 plugin.
+- Linux x86_64 Docker host with Docker Engine and Docker Compose v2 plugin.
 - Docker BuildKit/buildx support (used to derive non-root images from upstream bases).
 - At least 8 GB RAM for the stack; model requirements vary significantly. 16 GB+ RAM is a more practical starting point for small-to-medium quantized models.
 - Disk space for container images and model weights.
@@ -55,6 +55,16 @@ docker compose exec ollama ollama pull nomic-embed-text
 
 Model names and hardware requirements change; choose models whose licenses, context windows, quantization, and memory requirements fit your use case. Review model licenses before commercial use.
 
+## Backup and restore
+
+```bash
+mkdir -p backups
+bash scripts/backup.sh "backups/hezqen-ik01-$(date -u +%Y%m%dT%H%M%SZ)"
+bash scripts/restore.sh "backups/hezqen-ik01-YYYYMMDDTHHMMSSZ" --confirm
+```
+
+Restore requires an explicit confirmation flag and replaces the selected named-volume contents. Backups are not encrypted by the scripts; store them on encrypted storage or encrypt them before off-site transfer. See [operations](docs/OPERATIONS.md).
+
 ## NVIDIA GPU
 
 ```bash
@@ -79,7 +89,6 @@ The NVIDIA override grants access to GPU devices only to the Ollama service. The
 - Restrict Ollama egress at the host/network layer to approved registries and model sources where feasible.
 - Keep `.env` owner-readable only. Never commit real secrets.
 - Do not mount the Docker socket, host root, or broad home directories.
-- Back up named volumes before upgrades and test restore procedures.
 
 See [THREAT_MODEL.md](THREAT_MODEL.md), [SECURITY.md](SECURITY.md), [operations](docs/OPERATIONS.md), and [GPU guidance](docs/GPU.md).
 
@@ -97,4 +106,4 @@ python3 scripts/validate-monorepo.py
 python3 -m unittest discover -s tests -v
 ```
 
-The automated runtime smoke test builds the non-root images, starts the CPU Compose stack, verifies process UIDs, health, loopback binding, internal service connectivity, UI egress isolation, a small chat inference, and an embedding API response. It does not test NVIDIA GPU operation, ARM64, multi-user load, backup/restore, or production hardening of the host.
+The automated runtime smoke test builds the non-root images, starts the CPU Compose stack, verifies process UIDs, health, loopback binding, internal service connectivity, UI egress isolation, a small chat inference, embeddings, and backup/restore. It does not test NVIDIA GPU operation, ARM64, multi-user load, or production hardening of the host.

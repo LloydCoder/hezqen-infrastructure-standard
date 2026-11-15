@@ -59,7 +59,9 @@ services:
         condition: service_healthy
     environment:
       HOST: 0.0.0.0
-      HOME: /root
+      HOME: /tmp
+      XDG_CACHE_HOME: /tmp/.cache
+      TMPDIR: /tmp
       OLLAMA_BASE_URL: http://ollama:11434
       RAG_EMBEDDING_ENGINE: ollama
       RAG_EMBEDDING_MODEL: nomic-embed-text
@@ -76,8 +78,7 @@ services:
     volumes:
       - open_webui_data:/app/backend/data
     tmpfs:
-      - /tmp:rw,noexec,nosuid,size=512m
-      - /root/.cache:rw,noexec,nosuid,size=256m,uid=10001,gid=10001,mode=0700
+      - /tmp:rw,noexec,nosuid,size=768m,uid=10001,gid=10001,mode=0700
     networks:
       - ui-ingress
       - inference

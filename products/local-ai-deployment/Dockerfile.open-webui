@@ -3,8 +3,11 @@ FROM ${BASE_IMAGE}
 
 USER 0:0
 RUN addgroup --gid 10001 app \
-    && adduser --uid 10001 --gid 10001 --home /root --disabled-password --no-create-home --gecos "" app \
-    && chown -R 10001:10001 /app /root
+    && adduser --uid 10001 --gid 10001 --home /tmp --disabled-password --no-create-home --gecos "" app \
+    && mkdir -p /app/backend/data /tmp/.cache \
+    && chown -R 10001:10001 /app/backend/data /tmp/.cache
 
-ENV HOME=/root
+ENV HOME=/tmp
+ENV XDG_CACHE_HOME=/tmp/.cache
+ENV TMPDIR=/tmp
 USER 10001:10001
