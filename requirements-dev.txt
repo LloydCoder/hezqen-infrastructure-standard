@@ -1,0 +1,2 @@
+# CI schema-validation dependency. Pin exact version; transitive dependencies are resolved by pip.
+jsonschema==4.26.0
