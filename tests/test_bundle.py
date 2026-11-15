@@ -6,6 +6,7 @@ import shutil
 import json
 import sys
 import tempfile
+import tarfile
 import unittest
 from pathlib import Path
 
@@ -69,6 +70,17 @@ class BundleTests(unittest.TestCase):
             archive_a = output_a / "local-ai-deployment-0.1.0.tar.gz"
             archive_b = output_b / "local-ai-deployment-0.1.0.tar.gz"
             self.assertEqual(hashlib.sha256(archive_a.read_bytes()).digest(), hashlib.sha256(archive_b.read_bytes()).digest())
+
+
+    def test_each_product_archive_contains_applicable_license_text(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "release"
+            manifest = build_bundle(ROOT, output, "f" * 40)
+            for product in manifest["products"]:
+                with tarfile.open(output / product["archive"], "r:gz") as archive:
+                    license_file = archive.extractfile(f"{product['id']}/LICENSE")
+                    self.assertIsNotNone(license_file, product["id"])
+                    self.assertIn(b"Apache License", license_file.read())
 
     def test_manifest_binds_bundle_to_source_revision(self):
         with tempfile.TemporaryDirectory() as temporary:
