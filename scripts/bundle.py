@@ -194,6 +194,29 @@ def verify_bundle(bundle_dir: Path) -> list[str]:
                         raise ValueError("archived product license does not match bundle manifest")
             except (OSError, tarfile.TarError, ValueError, json.JSONDecodeError) as exc:
                 errors.append(f"cannot verify {archive_name}: {exc}")
+        sums_path = root / "SHA256SUMS"
+        if not sums_path.is_file() or sums_path.is_symlink():
+            errors.append("SHA256SUMS missing or unsafe")
+        else:
+            try:
+                expected_files: set[str] = set()
+                for line in sums_path.read_text(encoding="utf-8").splitlines():
+                    digest, separator, filename = line.partition("  ")
+                    if not separator or not re.fullmatch(r"[0-9a-f]{64}", digest) or not _safe_archive_name(filename) or len(PurePosixPath(filename).parts) != 1:
+                        errors.append("invalid SHA256SUMS entry")
+                        continue
+                    if filename in expected_files:
+                        errors.append(f"duplicate SHA256SUMS entry: {filename}")
+                        continue
+                    expected_files.add(filename)
+                    candidate = root / filename
+                    if candidate.is_symlink() or not candidate.is_file() or sha256_file(candidate) != digest:
+                        errors.append(f"SHA256SUMS verification failed: {filename}")
+                required_files = seen_archives | {"bundle-manifest.json", "sbom.cdx.json"}
+                if expected_files != required_files:
+                    errors.append("SHA256SUMS inventory does not match bundle contents")
+            except OSError as exc:
+                errors.append(f"cannot read SHA256SUMS: {exc}")
         sbom_path = root / "sbom.cdx.json"
         if not sbom_path.is_file() or sbom_path.is_symlink():
             errors.append("CycloneDX SBOM missing or unsafe")
