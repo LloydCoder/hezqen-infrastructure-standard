@@ -13,7 +13,7 @@ A hardened, local-first inference workspace using Ollama for model serving and t
 - Slim Open WebUI image with embeddings routed to Ollama.
 - Explicit no-tracking environment settings for Open WebUI.
 - Persistent named volumes, checksum-verified backup/restore scripts, and restore smoke tests.
-- Health checks, startup dependency ordering, restart policy, resource limits, dropped Linux capabilities, no-new-privileges, and read-only container root filesystems with explicit writable mounts.
+- Health checks, startup dependency ordering, restart policy, resource limits, dropped Linux capabilities, no-new-privileges, and read-only container root filesystems with explicit writable mounts. Open WebUI's generated static assets are copied to its bounded `/tmp` tmpfs via `STATIC_DIR`, avoiding writes to the read-only image filesystem.
 - Optional NVIDIA GPU override.
 - Operator guidance for model pulls, backups, updates, rollback, and network exposure.
 
