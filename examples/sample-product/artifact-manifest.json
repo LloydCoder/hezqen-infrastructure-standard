@@ -1,0 +1,13 @@
+{
+  "product": "hies-sample-product",
+  "version": "0.1.0",
+  "sourceRevision": "1234567abcdef",
+  "artifacts": [
+    {
+      "name": "sample.txt",
+      "sha256": "3e9b13e2b78b9374866575c983ef7e5b7502446cd21a766df9a2ff03abbbb8ba",
+      "mediaType": "text/plain",
+      "sizeBytes": 31
+    }
+  ]
+}
